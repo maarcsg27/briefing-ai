@@ -46,23 +46,30 @@ export const geminiService = {
       ? preferences.tags.join(', ')
       : scope.description;
 
-    const sourcesStr = preferences.sources
-      .filter((s) => s.enabled)
-      .map((s) => `${s.name} (${s.domain})`)
-      .join(', ');
+    const enabledSourcesList = preferences.sources.filter((s) => s.enabled);
+    const sourcesStr = enabledSourcesList
+      .map((s) => `- ${s.name} (Dominio: ${s.domain})`)
+      .join('\n');
 
     const maxLimit = preferences.maxNewsLimit || 5;
 
     const promptText = `
-Actúa como un analista de medios y investiga las noticias reales más importantes de las últimas 24 horas para la categoría "${scope.name}".
+Actúa como un analista de medios y investiga las noticias reales publicadas estrictamente en las ÚLTIMAS 24 HORAS para la categoría "${scope.name}".
 
 DATOS DE CONFIGURACIÓN DEL ÁMBITO:
 - Categoría: ${scope.name}
 - Descripción del ámbito: ${scope.description}
 - Etiquetas prioritarias del usuario: ${tagsStr}
 - Ámbito geográfico: ${preferences.geographicScope} (${preferences.country || 'Global'})
-- Fuentes preferidas de referencia: ${sourcesStr || 'Medios acreditados globales y nacionales'}
 - Cantidad deseada de noticias: ${maxLimit}
+
+RESTRICCIÓN OBLIGATORIA DE FUENTES Y TIEMPO (ÚLTIMAS 24 HORAS):
+1. ÚNICAMENTE debes buscar e incluir noticias reales publicadas en las ÚLTIMAS 24 HORAS.
+2. TODAS las noticias DEBEN PROVENIR EXCLUSIVAMENTE de una de las siguientes fuentes vinculadas en la biblioteca del usuario:
+${sourcesStr || '- Medios acreditados del sector'}
+
+3. Queda PROHIBIDO utilizar fuentes o dominios web que no pertenezcan a la lista de la biblioteca arriba especificada.
+4. Para cada noticia, el campo "sourceDomain" DEBE ser el dominio exacto de la fuente de la biblioteca (ej. "${enabledSourcesList[0]?.domain || 'cop.es'}").
 
 INSTRUCCIONES ESTRICTAS PARA CADA RESUMEN:
 1. El resumen ("summary") DEBE tener una extensión estricta de 3 a 5 líneas (entre 50 y 90 palabras).
@@ -70,17 +77,17 @@ INSTRUCCIONES ESTRICTAS PARA CADA RESUMEN:
 3. Mantén un tono neutral, directo y objetivo, sin introducciones ni comentarios adicionales.
 4. PROHIBIDO usar frases de relleno como "En esta noticia se habla de...", "Esta noticia trata sobre...", "En este artículo se analiza...". Comienza DIRECTAMENTE explicando los hechos y el contenido de la noticia.
 
-ESTRUCTURA DE RESPUESTA PARA CADA NOTICIA (entre 3 y ${maxLimit} noticias):
+ESTRUCTURA DE RESPUESTA PARA CADA NOTICIA (entre 3 y ${maxLimit} noticias de las fuentes de la biblioteca):
 - "title": Titular limpio, profesional y directo. NUNCA incluyas el nombre del medio en el titular.
 - "summary": El resumen analítico objetivo de 3 a 5 líneas estructurado según las instrucciones anteriores.
-- "source": Nombre del medio o fuente oficial acreditada.
-- "sourceDomain": Dominio web (ej. "expansion.com", "cop.es", "wired.com").
-- "sourceUrl": URL directa o búsqueda oficial de la fuente.
+- "source": Nombre exacto de la fuente de la biblioteca.
+- "sourceDomain": Dominio exacto de la fuente de la biblioteca (ej. "cop.es", "cnmv.es", "xataka.com").
+- "sourceUrl": URL oficial directa de la noticia en la fuente.
 - "matchedTags": Etiquetas coincidentes del usuario.
 - "geographicArea": Zona geográfica.
 
 SECCIONES ADICIONALES:
-- "audioScript": Guion fluido de locución por voz en español que analice de forma profesional y directa los titulares y sus resúmenes analíticos.
+- "audioScript": Guion fluido de locución por voz en español que analice de forma profesional y directa los titulares y sus resúmenes analíticos de las últimas 24h.
 - "summaryBulletPoints": Puntos clave con formato [#Etiqueta] Explicación directa del hecho principal e impacto.
 
 FORMATO DE RESPUESTA REQUERIDO:
@@ -161,7 +168,7 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato 
     const now = new Date();
     const horaActual = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-    const articles: NewsItem[] = (parsed.articles || []).map((art: any, index: number) => ({
+    let articles: NewsItem[] = (parsed.articles || []).map((art: any, index: number) => ({
       id: art.id || `gemini-${Date.now()}-${index}`,
       title: art.title || 'Información destacada del día',
       summary: art.summary || 'Resumen sintetizado por IA.',
@@ -175,6 +182,28 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato 
       geographicArea: art.geographicArea || preferences.country || 'Global',
       is24h: true,
     }));
+
+    // 1. Filtrar por Palabras Betadas (Blacklist)
+    const banned = preferences.bannedKeywords || [];
+    if (banned.length > 0) {
+      articles = articles.filter((art) => {
+        const text = `${art.title} ${art.summary} ${art.contentSnippet}`.toLowerCase();
+        return !banned.some((kw) => kw.trim() && text.includes(kw.trim().toLowerCase()));
+      });
+    }
+
+    // 2. Garantizar que procedan de fuentes habilitadas en la biblioteca del usuario
+    const enabledDomains = enabledSourcesList.map((s) => s.domain.toLowerCase().replace(/^www\./, ''));
+    if (enabledDomains.length > 0) {
+      const filteredBySource = articles.filter((art) => {
+        const domainClean = (art.sourceDomain || '').toLowerCase().replace(/^www\./, '');
+        const urlClean = (art.sourceUrl || '').toLowerCase();
+        return enabledDomains.some((d) => domainClean.includes(d) || urlClean.includes(d));
+      });
+      if (filteredBySource.length > 0) {
+        articles = filteredBySource;
+      }
+    }
 
     return {
       id: `briefing-ai-${Date.now()}`,

@@ -552,7 +552,30 @@ export const newsService = {
       rawArticles.push(...fallback);
     }
 
-    if (onProgress) onProgress(`Analizadas ${rawArticles.length} noticias. Deduplicando y puntuando por etiquetas...`);
+    // 1. Filtrar estrictamente por palabras betadas (Blacklist)
+    const banned = preferences.bannedKeywords || [];
+    if (banned.length > 0) {
+      rawArticles = rawArticles.filter((art) => {
+        const text = `${art.title} ${art.summary || ''} ${art.contentSnippet || ''}`.toLowerCase();
+        return !banned.some((kw) => kw.trim() && text.includes(kw.trim().toLowerCase()));
+      });
+    }
+
+    // 2. Filtrar estrictamente por las fuentes habilitadas en la biblioteca del usuario
+    const enabledSources = (preferences.sources || []).filter((s) => s.enabled);
+    if (enabledSources.length > 0) {
+      const enabledDomains = enabledSources.map((s) => s.domain.toLowerCase().replace(/^www\./, ''));
+      const libraryFiltered = rawArticles.filter((art) => {
+        const domainClean = (art.sourceDomain || '').toLowerCase().replace(/^www\./, '');
+        const urlClean = (art.sourceUrl || '').toLowerCase();
+        return enabledDomains.some((d) => domainClean.includes(d) || urlClean.includes(d));
+      });
+      if (libraryFiltered.length > 0) {
+        rawArticles = libraryFiltered;
+      }
+    }
+
+    if (onProgress) onProgress(`Analizadas ${rawArticles.length} noticias de tus fuentes oficiales (últimas 24h). Deduplicando y puntuando...`);
 
     // 2. Deduplicar por título similar (mismo inicio de 25 caracteres)
     const seenTitles = new Set<string>();
