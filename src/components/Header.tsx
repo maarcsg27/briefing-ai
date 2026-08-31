@@ -155,46 +155,46 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Cuenta Atrás y Acciones de Voz */}
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+        {/* Cuenta Atrás y Acciones de Voz adaptadas a Móvil / Tablet / Desktop */}
+        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
           
           {/* Reloj con Cuenta Atrás hasta la siguiente hora de actualización */}
           <div 
             title={`Próxima actualización a las ${nextUpdateInfo.time} h (${nextUpdateInfo.scopeName})`}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 shadow-inner group transition"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 shadow-inner group transition text-left"
           >
-            <div className="flex items-center gap-1.5">
-              <Timer className="w-4 h-4 text-emerald-400 animate-pulse" />
-              <span className="text-[11px] uppercase font-bold tracking-wider text-slate-400 group-hover:text-emerald-300 transition">
-                Próxima en:
+            <div className="flex items-center gap-1">
+              <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 animate-pulse shrink-0" />
+              <span className="text-[10px] sm:text-[11px] uppercase font-bold tracking-wider text-slate-400 group-hover:text-emerald-300 transition">
+                Próxima:
               </span>
             </div>
             <span className="font-mono text-xs sm:text-sm font-bold text-emerald-300 tracking-wider">
               {countdown}
             </span>
-            <span className="text-[10px] text-slate-400 font-medium pl-1 border-l border-slate-700/60 hidden md:inline">
+            <span className="text-[10px] text-slate-400 font-medium pl-1 border-l border-slate-700/60 hidden lg:inline">
               {nextUpdateInfo.time}h ({nextUpdateInfo.scopeName})
             </span>
           </div>
 
-          {/* Botón de Configurador General */}
-          {onOpenConfigurator && (
-            <button
-              onClick={onOpenConfigurator}
-              title="Abrir configurador de categorías y preferencias"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 transition shadow-sm"
-            >
-              <Sliders className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="hidden sm:inline">Configurador</span>
-            </button>
-          )}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Botón de Configurador General */}
+            {onOpenConfigurator && (
+              <button
+                onClick={onOpenConfigurator}
+                title="Abrir configurador de categorías y preferencias"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 transition shadow-sm"
+              >
+                <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="inline">Configurador</span>
+              </button>
+            )}
 
-          {/* Botón de Comando por Voz */}
-          <div className="flex items-center gap-2">
+            {/* Botón de Comando por Voz */}
             <button
               onClick={handleToggleListen}
               title="Pedir actualización por voz"
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-md ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all shadow-md ${
                 isListening
                   ? 'bg-rose-500 text-white animate-pulse shadow-rose-500/30 ring-2 ring-rose-400/50'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600'
@@ -202,13 +202,13 @@ export const Header: React.FC<HeaderProps> = ({
             >
               {isListening ? (
                 <>
-                  <MicOff className="w-4 h-4" />
+                  <MicOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span>Escuchando...</span>
                 </>
               ) : (
                 <>
-                  <Mic className="w-4 h-4 text-emerald-400" />
-                  <span>Hablar al Asistente</span>
+                  <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+                  <span className="hidden sm:inline">Hablar</span>
                 </>
               )}
             </button>

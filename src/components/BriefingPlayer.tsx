@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, Play, Pause, RotateCcw, FastForward } from 'lucide-react';
+import { Volume2, Play, Pause, RotateCcw, Square } from 'lucide-react';
 import { speechService } from '../services/speechService';
 import type { BriefingResult } from '../types';
 
@@ -15,6 +15,7 @@ export const BriefingPlayer: React.FC<BriefingPlayerProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [speechRate, setSpeechRate] = useState<number>(1.0);
+  const [showTranscript, setShowTranscript] = useState<boolean>(true);
 
   useEffect(() => {
     // Suscribirse a los cambios de estado de la voz
@@ -113,64 +114,78 @@ export const BriefingPlayer: React.FC<BriefingPlayerProps> = ({
           </div>
         </div>
 
-        {/* Controles del Reproductor */}
-        <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
+        {/* Controles de Reproducción y Velocidad Adaptados */}
+        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
           
-          {/* Selector de velocidad */}
-          <button
-            onClick={handleSpeedChange}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-semibold border border-slate-700 transition flex items-center gap-1"
-            title="Cambiar velocidad de locución"
-          >
-            <FastForward className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{speechRate}x</span>
-          </button>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Play / Pausa */}
+            <button
+              onClick={handleTogglePlay}
+              className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition"
+            >
+              {isPlaying && !isPaused ? (
+                <>
+                  <Pause className="w-3.5 h-3.5" />
+                  <span>Pausar</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5" />
+                  <span>{isPaused ? 'Reanudar' : 'Escuchar'}</span>
+                </>
+              )}
+            </button>
 
-          {/* Reiniciar */}
-          <button
-            onClick={handlePlay}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
-            title="Reiniciar audio"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-
-          {/* Parar */}
-          <button
-            onClick={handleStop}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
-            title="Detener audio"
-          >
-            <VolumeX className="w-4 h-4" />
-          </button>
-
-          {/* Play / Pausa Principal */}
-          <button
-            onClick={handleTogglePlay}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 transition"
-          >
-            {isPlaying && !isPaused ? (
-              <>
-                <Pause className="w-4 h-4 fill-current" />
-                <span>Pausar</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 fill-current" />
-                <span>Escuchar</span>
-              </>
+            {/* Detener */}
+            {isPlaying && (
+              <button
+                onClick={handleStop}
+                title="Detener locución"
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-rose-400 border border-slate-700 transition"
+              >
+                <Square className="w-3.5 h-3.5" />
+              </button>
             )}
-          </button>
+
+            {/* Replay */}
+            <button
+              onClick={handlePlay}
+              title="Volver a escuchar desde el inicio"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {/* Selector de Velocidad */}
+            <button
+              onClick={handleSpeedChange}
+              title="Cambiar velocidad de reproducción"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-[11px] font-mono font-bold text-emerald-400 transition"
+            >
+              {speechRate}x
+            </button>
+
+            {/* Alternar Transcripción */}
+            <button
+              onClick={() => setShowTranscript(!showTranscript)}
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-[11px] text-slate-300 hover:text-white transition"
+            >
+              {showTranscript ? 'Ocultar' : 'Ver Guion'}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Guion de locución transcrito */}
-      <div className="mt-4 pt-3 border-t border-slate-800/80 bg-slate-950/40 p-3.5 rounded-xl">
-        <p className="text-xs text-slate-300 italic leading-relaxed">
-          &ldquo;{briefing.audioScript}&rdquo;
-        </p>
-      </div>
-
+      {showTranscript && (
+        <div className="mt-4 pt-3 border-t border-slate-800/80 bg-slate-950/40 p-3.5 rounded-xl animate-fadeIn">
+          <p className="text-xs text-slate-300 italic leading-relaxed">
+            &ldquo;{briefing.audioScript}&rdquo;
+          </p>
+        </div>
+      )}
     </div>
   );
 };

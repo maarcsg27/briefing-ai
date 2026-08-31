@@ -175,29 +175,29 @@ export const App: React.FC = () => {
         visibleScopeIds={visibleScopeIds}
       />
 
-      {/* Contenedor Principal */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
+      {/* Contenedor Principal Adaptativo */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8">
         
         {/* Banner de Bienvenida y Acceso Directo al Configurador */}
-        <div className="relative rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-800 p-6 sm:p-8 overflow-hidden shadow-2xl">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="relative rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-800 p-4 sm:p-6 md:p-8 overflow-hidden shadow-2xl">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-3">
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-xs font-semibold mb-2.5 sm:mb-3">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Asistente Personalizado de Noticias por Voz</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-2">
                 Locución de actualidad y titulares al instante.
               </h2>
-              <p className="text-sm text-slate-300 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                 Escucha el resumen oficial de cada ámbito o utiliza el <strong>Configurador de Preferencias</strong> para añadir categorías, configurar tu hora de búsqueda y definir hasta <strong>20 etiquetas específicas</strong>.
               </p>
             </div>
 
-            <div className="flex sm:flex-col gap-2.5 shrink-0">
+            <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0 w-full sm:w-auto">
               <button
                 onClick={() => handleOpenConfigurator()}
-                className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition"
+                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition w-full sm:w-auto"
               >
                 <Sliders className="w-4 h-4" />
                 <span>Configurador de Preferencias</span>
@@ -205,9 +205,9 @@ export const App: React.FC = () => {
 
               <button
                 onClick={() => {
-                  handleOpenConfigurator();
+                  handleOpenConfigurator(undefined, 'create');
                 }}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700 transition"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl sm:rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700 transition w-full sm:w-auto"
               >
                 <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
                 <span>+ Crear Categoría</span>
@@ -218,19 +218,19 @@ export const App: React.FC = () => {
 
         {/* Sección de Categorías y Botones de Ámbito */}
         <section className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
+              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300">
                 Tus Categorías Activas en la Web:
               </h3>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-semibold">
+              <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-semibold">
                 {scopes.filter((s) => visibleScopeIds.includes(s.id)).length} de {scopes.length}
               </span>
             </div>
 
             <button
               onClick={() => handleOpenConfigurator(undefined, 'selector')}
-              className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold transition"
+              className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold transition self-start sm:self-auto"
             >
               <Sliders className="w-3.5 h-3.5" />
               <span>Personalizar qué categorías mostrar</span>

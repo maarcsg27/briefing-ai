@@ -244,20 +244,20 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 bg-black/80 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-slate-900 border border-slate-700 w-full max-w-3xl rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[90vh]">
         
         {/* Cabecera Principal */}
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold">
-              <Sliders className="w-5 h-5" />
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/95">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold shrink-0">
+              <Sliders className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                Configurador & Selector de Preferencias
+              <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                Configurador & Selector
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-[11px] sm:text-xs text-slate-400">
                 Elige qué categorías aparecen en la web, edita sus etiquetas o crea nuevas
               </p>
             </div>
@@ -270,19 +270,19 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
           </button>
         </div>
 
-        {/* 3 Pestañas Principales */}
-        <div className="flex border-b border-slate-800 bg-slate-950/60 px-6 pt-3 gap-2 overflow-x-auto">
+        {/* 3 Pestañas Principales Adaptativas */}
+        <div className="flex border-b border-slate-800 bg-slate-950/60 px-3 sm:px-6 pt-2.5 sm:pt-3 gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
           {/* Pestaña 1: Selector de Categorías Visibles */}
           <button
             onClick={() => setActiveTab('selector')}
-            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+            className={`pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 ${
               activeTab === 'selector'
                 ? 'border-emerald-500 text-emerald-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Eye className="w-4 h-4" />
-            <span>Selector de Categorías en la Web</span>
+            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Selector Web</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
               {tempVisibleIds.length}/{scopes.length}
             </span>
@@ -291,26 +291,26 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
           {/* Pestaña 2: Editar Categorías & Etiquetas */}
           <button
             onClick={() => setActiveTab('edit')}
-            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+            className={`pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 ${
               activeTab === 'edit'
                 ? 'border-emerald-500 text-emerald-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Sliders className="w-4 h-4" />
-            <span>Editar Categoría & Tags (máx 20)</span>
+            <Sliders className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Editar Categoría & Tags</span>
           </button>
 
           {/* Pestaña 3: Crear Nueva Categoría */}
           <button
             onClick={() => setActiveTab('create')}
-            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+            className={`pb-2.5 sm:pb-3 px-2.5 sm:px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 ${
               activeTab === 'create'
                 ? 'border-emerald-500 text-emerald-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <FolderPlus className="w-4 h-4" />
+            <FolderPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>+ Crear Categoría</span>
           </button>
         </div>
@@ -818,11 +818,11 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
         )}
 
         {/* Footer con Botón según la Pestaña Activa */}
-        <div className="px-6 py-4 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-800 bg-slate-900/95 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition"
+            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition text-center"
           >
             Cerrar
           </button>
@@ -831,7 +831,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
             <button
               type="button"
               onClick={handleSaveVisibility}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 transition"
+              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 transition"
             >
               {selectorSavedFeedback ? (
                 <>
@@ -848,7 +848,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
             <button
               type="button"
               onClick={handleSaveEdit}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 transition"
+              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 transition"
             >
               {saveSuccess ? (
                 <>
