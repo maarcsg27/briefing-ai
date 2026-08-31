@@ -4,16 +4,27 @@ import { ScopeGrid } from './components/ScopeGrid';
 import { PreferencesConfigurator } from './components/PreferencesConfigurator';
 import { BriefingPlayer } from './components/BriefingPlayer';
 import { NewsFeed } from './components/NewsFeed';
+import { LibraryManager } from './components/LibraryManager';
 import { storageService } from './services/storageService';
 import { newsService } from './services/newsService';
 import type { ScopeDefinition, ScopePreferences, BriefingResult } from './types';
-import { Sparkles, ArrowDown, Sliders, PlusCircle } from 'lucide-react';
+import { Sparkles, ArrowDown, Sliders, Radio, Library } from 'lucide-react';
 
 export const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'briefings' | 'library'>('briefings');
   const [scopes, setScopes] = useState<ScopeDefinition[]>([]);
   const [visibleScopeIds, setVisibleScopeIds] = useState<string[]>([]);
   const [preferencesMap, setPreferencesMap] = useState<Record<string, ScopePreferences>>({});
   const [activeScope, setActiveScope] = useState<ScopeDefinition | null>(null);
+
+  // ...
+  // Line 298
+          <LibraryManager
+            scopes={scopes}
+            preferencesMap={preferencesMap}
+            onUpdatePreferences={(_scopeId, updated) => handleSavePreferences(updated)}
+            onUpdateScopes={() => setScopes(storageService.getAllScopes())}
+          />
   
   // Estado del Configurador de Preferencias
   const [isConfiguratorOpen, setIsConfiguratorOpen] = useState<boolean>(false);
@@ -261,105 +272,143 @@ export const App: React.FC = () => {
       {/* Contenedor Principal Adaptativo */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8">
         
-        {/* Banner de Bienvenida y Acceso Directo al Configurador */}
-        <div className="relative rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-800 p-4 sm:p-6 md:p-8 overflow-hidden shadow-2xl">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
-            <div className="max-w-2xl">
-              <div className="flex flex-wrap items-center gap-2 mb-2.5 sm:mb-3">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-xs font-semibold">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Búsqueda Exhaustiva 24h & Locución</span>
-                </div>
-                {lastSyncTime && (
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300 text-[11px] sm:text-xs font-mono">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                    <span>Actualizado hoy {lastSyncTime}</span>
-                  </div>
-                )}
-              </div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-2">
-                Lo más relevante de las últimas 24 horas.
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Rastreo continuo de medios oficiales y especializados. Las noticias se priorizan primero según tus <strong>etiquetas configuradas</strong> y se limitan exactamente al número que definas en cada categoría.
-              </p>
-            </div>
+        {/* NAVEGACIÓN SUPERIOR DE PESTAÑAS: BRIEFINGS vs BIBLIOTECA & IA */}
+        <div className="flex items-center justify-center sm:justify-start gap-2 border-b border-slate-800 pb-3">
+          <button
+            onClick={() => setActiveTab('briefings')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition ${
+              activeTab === 'briefings'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+                : 'bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Radio className="w-4 h-4 text-emerald-300" />
+            <span>Briefings & Noticias</span>
+          </button>
 
-            <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0 w-full sm:w-auto">
-              <button
-                onClick={() => handleOpenConfigurator()}
-                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition w-full sm:w-auto"
-              >
-                <Sliders className="w-4 h-4" />
-                <span>Configurador de Preferencias</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  handleOpenConfigurator(undefined, 'create');
-                }}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl sm:rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700 transition w-full sm:w-auto"
-              >
-                <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
-                <span>+ Crear Categoría</span>
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={() => setActiveTab('library')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition ${
+              activeTab === 'library'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                : 'bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Library className="w-4 h-4 text-indigo-300" />
+            <span>Biblioteca de Temáticas & Fuentes (IA)</span>
+          </button>
         </div>
 
-        {/* Sección de Categorías y Botones de Ámbito */}
-        <section className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300">
-                Tus Categorías Activas en la Web:
-              </h3>
-              <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-semibold">
-                {scopes.filter((s) => visibleScopeIds.includes(s.id)).length} de {scopes.length}
-              </span>
-            </div>
-
-            <button
-              onClick={() => handleOpenConfigurator(undefined, 'selector')}
-              className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold transition self-start sm:self-auto"
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Personalizar qué categorías mostrar</span>
-            </button>
-          </div>
-
-          <ScopeGrid
-            scopes={scopes.filter((s) => visibleScopeIds.includes(s.id))}
+        {/* VISTA 1: BIBLIOTECA DE TEMÁTICAS Y DESCUBRIMIENTO POR IA */}
+        {activeTab === 'library' ? (
+          <LibraryManager
+            scopes={scopes}
             preferencesMap={preferencesMap}
-            activeScopeId={activeScope?.id || null}
-            isLoading={isLoading}
-            onSelectScope={(scope) => {
-              if (activeScope?.id !== scope.id) {
-                handleGenerateBriefing(scope, undefined, false, false);
-              }
-            }}
-            onOpenPreferences={(scope) => handleOpenConfigurator(scope, 'edit')}
-            onAddNewScope={() => handleOpenConfigurator(undefined, 'create')}
+            onUpdatePreferences={(_scopeId, updated) => handleSavePreferences(updated)}
+            onUpdateScopes={() => setScopes(storageService.getAllScopes())}
           />
-        </section>
+        ) : (
+          /* VISTA 2: BRIEFINGS DIARIOS Y NOTICIAS EN VIVO */
+          <>
+            {/* Banner de Bienvenida y Acceso Directo al Configurador */}
+            <div className="relative rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-800 p-4 sm:p-6 md:p-8 overflow-hidden shadow-2xl">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
+                <div className="max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2 mb-2.5 sm:mb-3">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-xs font-semibold">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Búsqueda Exhaustiva 24h & Locución</span>
+                    </div>
+                    {lastSyncTime && (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300 text-[11px] sm:text-xs font-mono">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span>Actualizado hoy {lastSyncTime}</span>
+                      </div>
+                    )}
+                  </div>
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-2">
+                    Lo más relevante de las últimas 24 horas.
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Rastreo continuo de medios oficiales y sintesis avanzada por IA. Las noticias se priorizan primero según tus <strong>etiquetas configuradas</strong> con resúmenes explicativos de 3 a 5 líneas.
+                  </p>
+                </div>
 
-        {/* Separador Visual */}
-        <div className="flex items-center justify-center gap-2 text-xs text-slate-500 pt-2">
-          <ArrowDown className="w-4 h-4 text-emerald-400 animate-bounce" />
-          <span>Resumen de voz y titulares verificados del momento</span>
-        </div>
+                <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0 w-full sm:w-auto">
+                  <button
+                    onClick={() => setActiveTab('library')}
+                    className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/20 transition w-full sm:w-auto"
+                  >
+                    <Library className="w-4 h-4" />
+                    <span>Biblioteca & Fuentes IA</span>
+                  </button>
 
-        {/* Sección de Resultados: Reproductor de Voz + Feed de Noticias */}
-        {currentBriefing && (
-          <section className="space-y-6 animate-fadeIn">
-            <BriefingPlayer briefing={currentBriefing} autoPlay={false} />
-            <NewsFeed
-              briefing={currentBriefing}
-              selectedTags={
-                (activeScope && preferencesMap[activeScope.id]?.tags) || []
-              }
-            />
-          </section>
+                  <button
+                    onClick={() => handleOpenConfigurator()}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl sm:rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700 transition w-full sm:w-auto"
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Ajustes Rápidos</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Sección de Categorías y Botones de Ámbito */}
+            <section className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300">
+                    Tus Categorías Activas en la Web:
+                  </h3>
+                  <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-semibold">
+                    {scopes.filter((s) => visibleScopeIds.includes(s.id)).length} de {scopes.length}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => handleOpenConfigurator(undefined, 'selector')}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold transition self-start sm:self-auto"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Personalizar qué categorías mostrar</span>
+                </button>
+              </div>
+
+              <ScopeGrid
+                scopes={scopes.filter((s) => visibleScopeIds.includes(s.id))}
+                preferencesMap={preferencesMap}
+                activeScopeId={activeScope?.id || null}
+                isLoading={isLoading}
+                onSelectScope={(scope) => {
+                  if (activeScope?.id !== scope.id) {
+                    handleGenerateBriefing(scope, undefined, false, false);
+                  }
+                }}
+                onOpenPreferences={(scope) => handleOpenConfigurator(scope, 'edit')}
+                onAddNewScope={() => handleOpenConfigurator(undefined, 'create')}
+              />
+            </section>
+
+            {/* Separador Visual */}
+            <div className="flex items-center justify-center gap-2 text-xs text-slate-500 pt-2">
+              <ArrowDown className="w-4 h-4 text-emerald-400 animate-bounce" />
+              <span>Resumen de voz y titulares verificados del momento</span>
+            </div>
+
+            {/* Sección de Resultados: Reproductor de Voz + Feed de Noticias */}
+            {currentBriefing && (
+              <section className="space-y-6 animate-fadeIn">
+                <BriefingPlayer briefing={currentBriefing} autoPlay={false} />
+                <NewsFeed
+                  briefing={currentBriefing}
+                  selectedTags={
+                    (activeScope && preferencesMap[activeScope.id]?.tags) || []
+                  }
+                />
+              </section>
+            )}
+          </>
         )}
 
       </main>

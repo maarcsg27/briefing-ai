@@ -3,13 +3,17 @@ import type { NewsItem, ScopePreferences, BriefingResult } from '../types';
 /**
  * Base de respaldo especializada por si la red no está disponible o falla un feed externo.
  */
+/**
+ * Base de respaldo especializada por si la red no está disponible o falla un feed externo.
+ * Cuidada estrictamente para que TITULAR y RESUMEN sean 100% distintos y sin repeticiones.
+ */
 const BACKUP_OFFICIAL_NEWS: Record<string, NewsItem[]> = {
   futbol: [
     {
       id: 'f-1',
-      title: 'El Real Madrid ultima su esquema para la Champions League con Mbappé como referencia',
-      summary: 'Ancelotti afina el tridente ofensivo con Mbappé y Vinícius para asegurar el liderato en la fase de grupos.',
-      contentSnippet: 'El Real Madrid completó su última sesión de entrenamiento en Valdebebas. Kylian Mbappé lidera los ejercicios de finalización mientras el cuerpo técnico confirma su titularidad para el crucial duelo europeo.',
+      title: 'El Real Madrid prepara su esquema para la Champions League',
+      summary: 'Ancelotti ha confirmado ajustes en el centro del campo y la línea ofensiva para optimizar el rendimiento de Mbappé y Vinícius. El cuerpo técnico busca asegurar la posesión y mejorar la efectividad de cara a gol en la fase de grupos.',
+      contentSnippet: 'El Real Madrid completó su sesión táctica en Valdebebas afinando movimientos de ataque rápido y coberturas defensivas.',
       source: 'Marca [Oficial]',
       sourceDomain: 'marca.com',
       sourceUrl: 'https://www.marca.com/futbol/real-madrid.html',
@@ -21,9 +25,9 @@ const BACKUP_OFFICIAL_NEWS: Record<string, NewsItem[]> = {
     },
     {
       id: 'f-2',
-      title: 'LaLiga EA Sports anuncia los horarios y sedes de las próximas tres jornadas oficiales',
-      summary: 'La patronal del fútbol español hace públicos los horarios televisivos con especial atención a los derbis autonómicos.',
-      contentSnippet: 'LaLiga ha hecho oficiales los horarios de los encuentros correspondientes a las jornadas clave del campeonato nacional, coordinando las franjas horarias con la climatología y compromisos continentales.',
+      title: 'LaLiga EA Sports publica los horarios de las próximas jornadas',
+      summary: 'La patronal ha coordinado con los operadores televisivos los tramos de emisión de los principales derbis. Se han ajustado las franjas horarias considerando las previsiones climatológicas y los compromisos continentales de los clubes participantes.',
+      contentSnippet: 'La patronal hace oficiales las fechas definitivas primando la asistencia de aficionados a los estadios y las retransmisiones internacionales.',
       source: 'LaLiga Oficial',
       sourceDomain: 'laliga.com',
       sourceUrl: 'https://www.laliga.com/noticias',
@@ -35,9 +39,9 @@ const BACKUP_OFFICIAL_NEWS: Record<string, NewsItem[]> = {
     },
     {
       id: 'f-3',
-      title: 'El FC Barcelona acelera la recuperación de sus jóvenes talentos de cara a la recta final',
-      summary: 'Flick confirma que los internacionales están listos tras el parón para el duelo doméstico.',
-      contentSnippet: 'Buenas noticias en la Ciudad Deportiva Joan Gamper. El FC Barcelona recupera efectivos clave en la medular y el ataque de cara a los próximos choques de LaLiga y competiciones coperas.',
+      title: 'El FC Barcelona recupera efectivos en la plantilla tras el parón',
+      summary: 'Hansi Flick dispondrá de los internacionales de la medular para el próximo compromiso doméstico. Los servicios médicos han dado el alta a los futbolistas tras completar la sesión de entrenamiento completa en la Ciudad Deportiva.',
+      contentSnippet: 'Los médicos confirman el óptimo estado de forma del bloque tras los partidos internacionales de selecciones.',
       source: 'Diario AS',
       sourceDomain: 'as.com',
       sourceUrl: 'https://as.com/futbol/primera/',
@@ -47,107 +51,34 @@ const BACKUP_OFFICIAL_NEWS: Record<string, NewsItem[]> = {
       geographicArea: 'España',
       is24h: true,
     },
-    {
-      id: 'f-4',
-      title: 'UEFA implementa nuevas normas de Fair Play Financiero y reparto de ingresos',
-      summary: 'El comité ejecutivo de la UEFA ratifica un incremento en el fondo de solidaridad para clubes en ligas europeas.',
-      contentSnippet: 'En su sede de Nyon, la UEFA detalló el nuevo modelo de distribución económica con un refuerzo del 15% destinado a fomentar el fútbol formativo y equilibrar la sostenibilidad financiera de las ligas continentales.',
-      source: 'UEFA Oficial',
-      sourceDomain: 'uefa.com',
-      sourceUrl: 'https://www.uefa.com/insideuefa/news/',
-      publishedAt: 'Últimas 24h',
-      isOfficial: true,
-      matchedTags: ['Champions League'],
-      geographicArea: 'Continental / Europa',
-      is24h: true,
-    },
-    {
-      id: 'f-5',
-      title: 'Kylian Mbappé bate registros de impacto en ventas y rendimiento físico con el Real Madrid',
-      summary: 'Un informe del club blanco destaca la adaptación física y comercial del astro francés en su primer tramo.',
-      contentSnippet: 'El departamento médico del Real Madrid constata cifras de aceleración y resistencia en Mbappé superiores al promedio del equipo, mientras las tiendas oficiales reportan una demanda sin precedentes.',
-      source: 'Relevo [Deportivo]',
-      sourceDomain: 'relevo.com',
-      sourceUrl: 'https://www.relevo.com/futbol/',
-      publishedAt: 'Últimas 24h',
-      isOfficial: true,
-      matchedTags: ['Mbappé', 'Real Madrid'],
-      geographicArea: 'España / Internacional',
-      is24h: true,
-    },
   ],
 
   finanzas: [
     {
       id: 'fin-1',
-      title: 'El IBEX 35 consolida ganancias impulsado por el sector bancario y las energéticas',
-      summary: 'El selectivo español supera niveles clave gracias a los resultados trimestrales y la estabilidad de la prima de riesgo.',
-      contentSnippet: 'La bolsa española experimenta subidas generalizadas con el IBEX 35 afianzando posiciones por encima de cotas relevantes. El mercado acoge con optimismo las previsiones de tipos de interés y el rendimiento bancario.',
+      title: 'El IBEX 35 consolida ganancias apoyado en el sector bancario',
+      summary: 'La bolsa española supera resistencias clave impulsada por los sólidos resultados trimestrales de las entidades financieras y la estabilidad de la prima de riesgo europea.',
+      contentSnippet: 'Los analistas destacan el comportamiento positivo del selectivo en un entorno de moderación de tipos de interés y buenas previsiones corporativas.',
       source: 'Expansión [Oficial]',
       sourceDomain: 'expansion.com',
       sourceUrl: 'https://www.expansion.com/mercados/ibex35.html',
       publishedAt: 'Últimas 24h',
       isOfficial: true,
-      matchedTags: ['IBEX 35', 'Tipos de interés'],
+      matchedTags: ['IBEX 35', 'Ahorro sistemático'],
       geographicArea: 'España / Europa',
       is24h: true,
     },
     {
       id: 'fin-2',
-      title: 'El Banco Central Europeo (BCE) analiza la senda de tipos de interés ante la evolución de la inflación',
-      summary: 'Christine Lagarde reitera que las decisiones se tomarán reunión a reunión con estricta dependencia de los datos.',
-      contentSnippet: 'Desde Fráncfort, portavoces del BCE destacan que la moderación del coste de la energía permite vislumbrar una política monetaria más acomodaticia en los próximos trimestres si los salarios mantienen su trayectoria prevista.',
+      title: 'El BCE evalúa la senda de tipos ante la caída de la inflación',
+      summary: 'Christine Lagarde reitera que el organismo central ajustará la política monetaria reunión a reunión atendiendo al coste de la energía y los datos de empleo.',
+      contentSnippet: 'Las actas de la última reunión reflejan una mayor confianza de los gobernadores en que la inflación retornará de forma sostenible al objetivo del dos por ciento.',
       source: 'Cinco Días / El País',
       sourceDomain: 'cincodias.elpais.com',
       sourceUrl: 'https://cincodias.elpais.com/economia/',
       publishedAt: 'Últimas 24h',
       isOfficial: true,
-      matchedTags: ['BCE', 'Tipos de interés'],
-      geographicArea: 'Continental / Europa',
-      is24h: true,
-    },
-    {
-      id: 'fin-3',
-      title: 'Wall Street y las tecnológicas impulsan los índices globales con el foco en la demanda de IA',
-      summary: 'Nvidia y las grandes corporaciones marcan récords de capitalización en una jornada con gran volumen de negociación.',
-      contentSnippet: 'Los parqués estadounidenses registran sólidas compras en los sectores de semiconductores e infraestructura en la nube. Los analistas revisan al alza los objetivos de rentabilidad corporativa para el último trimestre.',
-      source: 'Bloomberg News',
-      sourceDomain: 'bloomberg.com',
-      sourceUrl: 'https://www.bloomberg.com/markets',
-      publishedAt: 'Últimas 24h',
-      isOfficial: true,
-      matchedTags: ['Wall Street', 'Nvidia'],
-      geographicArea: 'Internacional / Global',
-      is24h: true,
-    },
-  ],
-
-  politica: [
-    {
-      id: 'pol-1',
-      title: 'El Congreso debate el paquete de reformas económicas y los nuevos presupuestos generales',
-      summary: 'Las formaciones parlamentarias inician la ronda de negociaciones para articular las mayorías de votación.',
-      contentSnippet: 'Jornada intensa en la Carrera de San Jerónimo. Los portavoces parlamentarios fijan posturas sobre las medidas de escudo social, incentivos fiscales para pymes y los compromisos de gasto comunitario.',
-      source: 'Agencia EFE [Oficial]',
-      sourceDomain: 'efe.com',
-      sourceUrl: 'https://efe.com/espana/',
-      publishedAt: 'Últimas 24h',
-      isOfficial: true,
-      matchedTags: ['Congreso', 'Presupuestos'],
-      geographicArea: 'España',
-      is24h: true,
-    },
-    {
-      id: 'pol-2',
-      title: 'La Unión Europea acuerda una directiva común para reforzar la soberanía energética y digital',
-      summary: 'Los ministros de los 27 países miembros firman el marco de transición estratégica para 2030.',
-      contentSnippet: 'Reunidos en Bruselas, los ministros de Industria y Asuntos Exteriores de la UE han rubricado el protocolo que agilizará los fondos comunitarios para proyectos de interconexión y resiliencia estratégica.',
-      source: 'Reuters World News',
-      sourceDomain: 'reuters.com/world',
-      sourceUrl: 'https://www.reuters.com/world/europe/',
-      publishedAt: 'Últimas 24h',
-      isOfficial: true,
-      matchedTags: ['Unión Europea'],
+      matchedTags: ['Fiscalidad doméstica', 'Fondos indexados'],
       geographicArea: 'Continental / Europa',
       is24h: true,
     },
@@ -156,30 +87,247 @@ const BACKUP_OFFICIAL_NEWS: Record<string, NewsItem[]> = {
   tecnologia: [
     {
       id: 'tech-1',
-      title: 'Nuevos avances en modelos multimodales de IA reducen la latencia de respuesta en un 60%',
-      summary: 'Google DeepMind y OpenAI presentan nuevas técnicas de destilación y razonamiento en tiempo real.',
-      contentSnippet: 'La última generación de modelos de lenguaje, incluyendo las familias Gemini y GPT, consolida arquitecturas híbridas capaces de procesar voz, código y visión simultáneamente con consumos energéticos optimizados.',
+      title: 'Nuevas arquitecturas de IA reducen la latencia de respuesta',
+      summary: 'Técnicas avanzadas de destilación y razonamiento en tiempo real permiten a los modelos multimodales procesar texto, voz y visión simultáneamente con menor consumo de recursos.',
+      contentSnippet: 'Los últimos benchmarks demuestran una mejora sustancial en la velocidad de inferencia sin comprometer la precisión en tareas lógicas complejas.',
       source: 'Xataka [Especializado]',
       sourceDomain: 'xataka.com',
       sourceUrl: 'https://www.xataka.com/categoria/inteligencia-artificial',
       publishedAt: 'Últimas 24h',
       isOfficial: true,
-      matchedTags: ['Inteligencia Artificial', 'Gemini', 'OpenAI'],
+      matchedTags: ['Inteligencia artificial', 'Automatización'],
       geographicArea: 'Global / Internacional',
       is24h: true,
     },
     {
       id: 'tech-2',
-      title: 'Informe de Ciberseguridad alerta sobre el aumento de técnicas automatizadas de phishing y su contención',
-      summary: 'Equipos de respuesta a incidentes aconsejan adoptar protocolos biométricos y claves de paso sin contraseñas.',
-      contentSnippet: 'Los centros nacionales de ciberseguridad han emitido una guía conjunta de prevención tras detectar patrones de ataque que utilizan generación de voz sintética para suplantar identidades ejecutivas.',
+      title: 'Alerta de ciberseguridad sobre ataques de suplantación automatizados',
+      summary: 'Los centros de respuesta a incidentes recomiendan migrar a llaves de paso biométricas tras detectar campañas que emplean clonación de voz sintética.',
+      contentSnippet: 'El informe aconseja a organizaciones e individuos establecer canales de verificación secundarios para cualquier transferencia o solicitud de credenciales sensible.',
       source: 'The Verge',
       sourceDomain: 'theverge.com',
       sourceUrl: 'https://www.theverge.com/tech',
       publishedAt: 'Últimas 24h',
       isOfficial: true,
-      matchedTags: ['Ciberseguridad'],
+      matchedTags: ['Ciberseguridad', 'Privacidad digital'],
       geographicArea: 'Internacional',
+      is24h: true,
+    },
+  ],
+
+  'crecimiento-personal': [
+    {
+      id: 'cp-1',
+      title: 'Estrategias de neurociencia contra los sesgos cognitivos',
+      summary: 'Investigadores de la Universidad de Harvard analizan cómo la metacognición y las pausas deliberadas reducen el impacto del sesgo de confirmación en la toma de decisiones complejas.',
+      contentSnippet: 'El estudio propone un protocolo de cinco pasos para evaluar alternativas objetivas antes de ejecutar elecciones de alto impacto personal y profesional.',
+      source: 'Psychology Today',
+      sourceDomain: 'psychologytoday.com',
+      sourceUrl: 'https://www.psychologytoday.com',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Sesgos cognitivos', 'Inteligencia emocional'],
+      geographicArea: 'Global',
+      is24h: true,
+    },
+    {
+      id: 'cp-2',
+      title: 'Sistemas de hábitos atómicos para optimizar el tiempo',
+      summary: 'Se desglosan la regla de los dos minutos y el apilamiento de rutinas como métodos para vencer la procrastinación y mantener la consistencia diaria sin agotamiento.',
+      contentSnippet: 'La clave reside en enfocarse en la identidad y en mejoras incrementales del uno por ciento diario en lugar de metas desproporcionadas a largo plazo.',
+      source: 'James Clear Blog',
+      sourceDomain: 'jamesclear.com',
+      sourceUrl: 'https://jamesclear.com',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Gestión del tiempo', 'Hábitos atómicos'],
+      geographicArea: 'Global',
+      is24h: true,
+    },
+  ],
+
+  'salud-bienestar': [
+    {
+      id: 'sb-1',
+      title: 'La higiene del sueño como pilar de la longevidad y síntesis muscular',
+      summary: 'Una revisión en la base científica confirma que mantener patrones de descanso regular de siete a ocho horas reduce marcadamente los marcadores de inflamación sistémica.',
+      contentSnippet: 'El estudio resalta que la calidad del sueño profundo influye directamente en la recuperación tisular y en la regulación hormonal adecuada.',
+      source: 'PubMed',
+      sourceDomain: 'pubmed.ncbi.nlm.nih.gov',
+      sourceUrl: 'https://pubmed.ncbi.nlm.nih.gov',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Higiene del sueño', 'Entrenamiento de fuerza'],
+      geographicArea: 'Global',
+      is24h: true,
+    },
+    {
+      id: 'sb-2',
+      title: 'Protocolos de movilidad articular y ergonomía laboral',
+      summary: 'Especialistas en biomecánica detallan rutinas de pausas activas de cinco minutos para contrarrestar la rigidez de cadera y columna derivada del trabajo sedentario.',
+      contentSnippet: 'Incorporar ejercicios dinámicos antes y después de la jornada reduce el riesgo de molestias crónicas y mejora la postura corporal.',
+      source: 'Examine.com',
+      sourceDomain: 'examine.com',
+      sourceUrl: 'https://examine.com',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Ergonomía', 'Movilidad articular'],
+      geographicArea: 'Global',
+      is24h: true,
+    },
+  ],
+
+  'ciencia-historia': [
+    {
+      id: 'ch-1',
+      title: 'Hallan asentamientos antiguos inéditos mediante tecnología Lidar',
+      summary: 'Escáneres láser aerotransportados revelan estructuras subterráneas, calzadas y complejos hidráulicos milenarios ocultos bajo la vegetación selvática.',
+      contentSnippet: 'El hallazgo reescribe la densidad poblacional y la capacidad organizativa de las civilizaciones precolombinas en el continente.',
+      source: 'National Geographic',
+      sourceDomain: 'nationalgeographic.com',
+      sourceUrl: 'https://www.nationalgeographic.com',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Civilizaciones antiguas', 'Arqueología'],
+      geographicArea: 'Global',
+      is24h: true,
+    },
+    {
+      id: 'ch-2',
+      title: 'Ensayos orbitales de propulsión limpia para exploración espacial',
+      summary: 'La agencia espacial confirma el encendido controlado de un nuevo sistema térmico en órbita baja, orientada a misiones de larga duración.',
+      contentSnippet: 'La prueba valida los modelos teóricos de eficiencia de combustible para la futura navegación hacia la Luna y Marte.',
+      source: 'Agencia SINC',
+      sourceDomain: 'agenciasinc.es',
+      sourceUrl: 'https://www.agenciasinc.es',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Exploración espacial', 'Experimentos científicos'],
+      geographicArea: 'España / Global',
+      is24h: true,
+    },
+  ],
+
+  'negocios-carrera': [
+    {
+      id: 'nc-1',
+      title: 'Estrategias de negociación salarial en equipos remotos',
+      summary: 'Documentar métricas de valor cuantificables y presentar análisis de impacto con antelación aumenta en un cuarenta por ciento la tasa de éxito en revisiones salariales.',
+      contentSnippet: 'El artículo analiza cómo los profesionales que trabajan a distancia proyectan su liderazgo mediante una comunicación asertiva y consistente.',
+      source: 'Harvard Business Review',
+      sourceDomain: 'hbr.org',
+      sourceUrl: 'https://hbr.org',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Negociación salarial', 'Marca personal', 'Trabajo remoto'],
+      geographicArea: 'Global',
+      is24h: true,
+    },
+    {
+      id: 'nc-2',
+      title: 'Adopción de metodologías ágiles en emprendimiento digital',
+      summary: 'Las startups que aplican marcos adaptativos reducen un veinticinco por ciento el tiempo necesario para lanzar productos mínimos viables al mercado.',
+      contentSnippet: 'La cultura de iteración rápida y ciclos cortos de feedback permite ajustar la propuesta de valor según las respuestas reales de los usuarios.',
+      source: 'Fast Company',
+      sourceDomain: 'fastcompany.com',
+      sourceUrl: 'https://www.fastcompany.com',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Emprendimiento digital', 'Gestión de proyectos'],
+      geographicArea: 'Global',
+      is24h: true,
+    },
+  ],
+
+  'creatividad-diseno': [
+    {
+      id: 'cd-1',
+      title: 'Evolución del Storytelling e identidad de marca digital',
+      summary: 'Estudios de diseño señalan un cambio de tendencia hacia estéticas orgánicas y narrativas visuales directas adaptadas a formatos verticales y móviles.',
+      contentSnippet: 'Las marcas apuestan por sistemas de diseño flexibles que mantienen la coherencia visual sin saturar con elementos innecesarios.',
+      source: 'Behance',
+      sourceDomain: 'behance.net',
+      sourceUrl: 'https://www.behance.net',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Storytelling', 'Identidad visual'],
+      geographicArea: 'Global',
+      is24h: true,
+    },
+    {
+      id: 'cd-2',
+      title: 'Aceleración por hardware en edición de vídeo y fotografía',
+      summary: 'Las nuevas herramientas de procesado en cámara y software permiten realizar correcciones de color y aislamiento de sujetos en fracciones de segundo.',
+      contentSnippet: 'Los creadores de contenido optimizan sus flujos de trabajo reduciendo horas de renderizado continuo gracias a la integración neuronal.',
+      source: 'Creative Bloq',
+      sourceDomain: 'creativebloq.com',
+      sourceUrl: 'https://www.creativebloq.com',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Fotografía digital', 'Edición de vídeo'],
+      geographicArea: 'Global',
+      is24h: true,
+    },
+  ],
+
+  politica: [
+    {
+      id: 'pol-1',
+      title: 'Debate en el Congreso sobre las reformas presupuestarias',
+      summary: 'Las fuerzas parlamentarias negocian las enmiendas al proyecto de cuentas públicas con especial atención a las medidas de incentivo fiscal y gasto social.',
+      contentSnippet: 'Los portavoces fijan sus condiciones para apoyar la votación final de los presupuestos en un calendario legislativo apretado.',
+      source: 'Agencia EFE [Oficial]',
+      sourceDomain: 'efe.com',
+      sourceUrl: 'https://efe.com/espana/',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Conflictos internacionales', 'Elecciones'],
+      geographicArea: 'España',
+      is24h: true,
+    },
+    {
+      id: 'pol-2',
+      title: 'Acuerdo de la Unión Europea sobre soberanía energética',
+      summary: 'Los ministros comunitarios firman el protocolo para agilizar fondos destinados a infraestructuras de interconexión y almacenamiento estratégico.',
+      contentSnippet: 'El marco común busca garantizar el suministro y acelerar los objetivos de transición verde para la próxima década.',
+      source: 'Reuters World News',
+      sourceDomain: 'reuters.com/world',
+      sourceUrl: 'https://www.reuters.com/world/europe/',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Geopolítica energética', 'Diplomacia'],
+      geographicArea: 'Continental / Europa',
+      is24h: true,
+    },
+  ],
+
+  'deportes-competicion': [
+    {
+      id: 'dc-1',
+      title: 'Analítica avanzada y preparación táctica en el fútbol elite',
+      summary: 'Cuerpos técnicos combinan datos de posicionamiento GPS e indicadores de fatiga para programar las cargas de entrenamiento antes de choques decisivos.',
+      contentSnippet: 'El uso de métricas en tiempo real ayuda a prevenir lesiones musculares y optimizar los cambios tácticos durante los partidos.',
+      source: 'The Athletic',
+      sourceDomain: 'theathletic.com',
+      sourceUrl: 'https://theathletic.com',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Fútbol internacional', 'Rendimiento'],
+      geographicArea: 'Global',
+      is24h: true,
+    },
+    {
+      id: 'dc-2',
+      title: 'Balance de la jornada en deportes de motor y baloncesto',
+      summary: 'Las escuderías prueban nuevas configuraciones aerodinámicas mientras las ligas de baloncesto mantienen finales apretados en la tabla clasificatoria.',
+      contentSnippet: 'La igualdad en las marcas de tiempo y el nivel competitivo elevan la expectación ante los próximos compromisos del calendario.',
+      source: 'Diario AS',
+      sourceDomain: 'as.com',
+      sourceUrl: 'https://as.com',
+      publishedAt: 'Últimas 24h',
+      isOfficial: true,
+      matchedTags: ['Baloncesto (NBA/Euroliga)', 'Deportes de motor'],
+      geographicArea: 'España / Internacional',
       is24h: true,
     },
   ],
@@ -199,6 +347,56 @@ function cleanRssTitle(rawTitle: string): { title: string; detectedSource?: stri
     title = parts.join(' - ').trim();
   }
   return { title, detectedSource };
+}
+
+/**
+ * Extrae y sintetiza un resumen REAL y limpio del contenido de la noticia.
+ * Garantiza que NO repita el titular y que extraiga la información explicativa.
+ */
+function extractCleanSummary(title: string, rawSnippet: string, query: string, sourceName: string): string {
+  if (!rawSnippet || rawSnippet.trim().length === 0) {
+    return `Cobertura detallada por parte de ${sourceName} sobre los acontecimientos recientes en ${query}. El artículo analiza las implicaciones y puntos clave del desarrollo.`;
+  }
+
+  // Eliminar etiquetas HTML
+  let clean = rawSnippet.replace(/<[^>]*>?/gm, '').trim();
+  clean = clean.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+
+  // Eliminar coletillas de RSS como "y más »"
+  clean = clean.replace(/y más\s*»?/gi, '').trim();
+
+  // Comprobar si el texto del snippet empieza por el titular o lo repite
+  const normTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normClean = clean.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  if (normClean.startsWith(normTitle)) {
+    // Retirar el titular del inicio del texto
+    clean = clean.substring(title.length).trim();
+  } else {
+    // Comprobar coincidencia parcial si el snippet empieza con los primeros 30 caracteres del titular
+    const shortTitle = normTitle.substring(0, Math.min(30, normTitle.length));
+    if (normClean.startsWith(shortTitle)) {
+      const firstSep = clean.search(/[.:\-\–]\s/);
+      if (firstSep > 0 && firstSep < title.length + 20) {
+        clean = clean.substring(firstSep + 2).trim();
+      }
+    }
+  }
+
+  // Limpiar signos de puntuación o guiones sobrantes al principio
+  clean = clean.replace(/^[-–:;\s\.\"]+/g, '').trim();
+
+  // Capitalizar la primera letra
+  if (clean.length > 0) {
+    clean = clean.charAt(0).toUpperCase() + clean.slice(1);
+  }
+
+  // Si después de limpiar el snippet quedó demasiado corto (porque el RSS solo enviaba el titular), generar un resumen sintético
+  if (clean.length < 35) {
+    return `Análisis de ${sourceName} sobre la evolución de ${query}. El informe desglosa los datos clave y las consecuencias prácticas para el sector.`;
+  }
+
+  return clean;
 }
 
 /**
@@ -256,15 +454,14 @@ async function fetchNewsQuery(
         domain = sourceName.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com';
       }
 
-      const snippet = item.description 
-        ? item.description.replace(/<[^>]*>?/gm, '').trim() 
-        : `Noticia relevante de las últimas 24h sobre ${query} publicada por ${sourceName}.`;
+      const rawSnippet = item.description || item.content || '';
+      const cleanSummary = extractCleanSummary(title, rawSnippet, query, sourceName);
 
       return {
         id: `live-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
         title,
-        summary: snippet.length > 170 ? snippet.substring(0, 167) + '...' : snippet,
-        contentSnippet: snippet,
+        summary: cleanSummary.length > 260 ? cleanSummary.substring(0, 257) + '...' : cleanSummary,
+        contentSnippet: cleanSummary,
         source: sourceName,
         sourceDomain: domain,
         sourceUrl: item.link || '#',
@@ -281,15 +478,14 @@ async function fetchNewsQuery(
   }
 }
 
+import { geminiService } from './geminiService';
+import { storageService } from './storageService';
+
 export const newsService = {
   /**
-   * Realiza una búsqueda MUY EXHAUSTIVA de las últimas 24 horas para la categoría:
-   * 1. Consulta la categoría general de las últimas 24h.
-   * 2. Consulta en paralelo cada una de las etiquetas del usuario de las últimas 24h.
-   * 3. Deduplica titulares.
-   * 4. PUNTÚA y PRIORIZA primero las noticias que coinciden con las etiquetas configuradas.
-   * 5. Completa el resto con las noticias más destacadas de las últimas 24h hasta el límite configurado (`maxNewsLimit`).
-   * 6. Genera el resumen y el guion de locución rápido para el usuario al entrar a la web.
+   * Realiza la síntesis de noticias de las últimas 24h:
+   * 1. Intenta la síntesis avanzada con Gemini 2.5 Flash (búsqueda web + resúmenes de 3-5 líneas por IA).
+   * 2. Si no hay llave o la red falla, utiliza el rastreador de contingencia optimizado.
    */
   async generateBriefing(
     scopeId: string,
@@ -297,14 +493,33 @@ export const newsService = {
     scopeName: string,
     onProgress?: (msg: string) => void
   ): Promise<BriefingResult> {
+    // Intentar síntesis por IA si Gemini API Key está disponible
+    if (geminiService.hasValidKey()) {
+      try {
+        const allScopes = storageService.getAllScopes();
+        const scopeDef = allScopes.find((s) => s.id === scopeId) || {
+          id: scopeId,
+          name: scopeName,
+          description: scopeName,
+          color: '#3B82F6',
+          icon: 'Sparkles',
+          label: scopeName,
+          accentGradient: '',
+          defaultPreferences: preferences,
+        };
+        return await geminiService.generateBriefingWithAI(scopeDef, preferences, onProgress);
+      } catch (err: any) {
+        console.warn('[newsService] Gemini AI briefing falló, usando motor alternativo:', err);
+        if (onProgress) onProgress('Transicionando a motor alternativo...');
+      }
+    }
+
     if (onProgress) onProgress('Iniciando rastreo exhaustivo en páginas oficiales (últimas 24h)...');
 
     // 1. Preparar consultas paralelas:
     const queriesToRun: string[] = [scopeName];
 
-    // Añadir consultas para las etiquetas prioritarias del usuario (máximo 4 consultas directas para no saturar)
     if (preferences.tags && preferences.tags.length > 0) {
-      // Tomamos grupos de etiquetas para consultas compuestas eficientes
       const mainTags = preferences.tags.slice(0, 4);
       mainTags.forEach((tag) => {
         queriesToRun.push(`${scopeName} ${tag}`);
@@ -313,7 +528,6 @@ export const newsService = {
 
     if (onProgress) onProgress(`Consultando ${queriesToRun.length} fuentes y canales de noticias de las últimas 24h...`);
 
-    // Ejecutar todas las búsquedas en paralelo con timeout de 6 segundos
     const fetchPromises = queriesToRun.map((q) =>
       fetchNewsQuery(q, preferences.geographicScope, preferences.country)
     );
@@ -330,7 +544,6 @@ export const newsService = {
       console.warn('Error during parallel fetch:', e);
     }
 
-    // Si la búsqueda online falló o trajo muy pocas noticias, integrar las noticias de respaldo curadas
     if (rawArticles.length < 3) {
       const fallback = BACKUP_OFFICIAL_NEWS[scopeId] || [];
       rawArticles.push(...fallback);
@@ -356,16 +569,11 @@ export const newsService = {
     const scoredArticles = uniqueArticles.map((art) => {
       const fullText = `${art.title} ${art.summary} ${art.contentSnippet}`.toLowerCase();
       
-      // Comprobar coincidencias con las etiquetas
       const matched = userTags.filter((tag) => {
         const tLower = tag.toLowerCase();
         return fullText.includes(tLower);
       });
 
-      // Puntuación:
-      // +20 puntos por cada etiqueta coincidente
-      // +5 puntos por ser fuente oficial verificada
-      // +10 puntos si la etiqueta está en el titular
       let score = matched.length * 20 + (art.isOfficial ? 5 : 0);
       matched.forEach((t) => {
         if (art.title.toLowerCase().includes(t.toLowerCase())) {
@@ -381,47 +589,34 @@ export const newsService = {
       };
     });
 
-    // ORDENAR PRIORITARIAMENTE:
-    // 1º Los que tienen mayor puntuación (coincidencia con etiquetas)
-    // 2º Por orden de llegada / actualidad
     scoredArticles.sort((a, b) => (b.score || 0) - (a.score || 0));
 
     // 4. APLICAR EL LÍMITE DE NOTICIAS DE LA CATEGORÍA
     const maxLimit = preferences.maxNewsLimit && preferences.maxNewsLimit > 0 ? preferences.maxNewsLimit : 5;
     const selectedBatch = scoredArticles.slice(0, maxLimit);
 
-    // ANALIZAR NOTICIA POR NOTICIA Y EXTRAER RESUMEN DE LO MÁS IMPORTANTE
+    // SINTETIZAR Y GARANTIZAR RESÚMENES LIMPIOS Y PUNTOS CLAVE SIN REPETIR EL TITULAR
     const finalArticles: NewsItem[] = selectedBatch.map((art) => {
-      // Extraer y enriquecer el resumen de lo que se cuenta en la noticia
-      let summaryText = art.summary || '';
-      const snippet = art.contentSnippet || '';
+      const cleanSummary = extractCleanSummary(art.title, art.summary || art.contentSnippet || '', scopeName, art.source);
 
-      // Si el resumen es muy corto o genérico, sintetizar a partir del titular y snippet
-      if (summaryText.length < 50 && snippet.length > 50) {
-        summaryText = snippet;
-      }
-
-      // Extraer 2 puntos clave específicos analizando el texto
-      const sentences = `${summaryText}. ${snippet}`
+      // Extraer oraciones clave que NO repitan el titular
+      const sentences = cleanSummary
         .split(/[.!?]\s+/)
         .map((s) => s.trim())
-        .filter((s) => s.length > 25 && !s.toLowerCase().includes('leer más') && !s.toLowerCase().includes('suscríbete'));
+        .filter((s) => s.length > 20 && !s.toLowerCase().includes('leer más'));
 
       const keyHighlights: string[] = [];
-      if (sentences.length >= 1) {
-        keyHighlights.push(sentences[0]);
-      }
-      if (sentences.length >= 2 && sentences[1] !== sentences[0]) {
-        keyHighlights.push(sentences[1]);
-      }
-      if (keyHighlights.length === 0) {
-        keyHighlights.push(`Cobertura oficial de ${art.source} sobre los hechos recientes.`);
-      }
+      sentences.forEach((sentence) => {
+        const titleOverlap = art.title.toLowerCase().substring(0, 20);
+        if (!sentence.toLowerCase().includes(titleOverlap) && !keyHighlights.includes(sentence) && keyHighlights.length < 2) {
+          keyHighlights.push(sentence);
+        }
+      });
 
       return {
         ...art,
-        summary: summaryText.length > 260 ? summaryText.substring(0, 257) + '...' : summaryText,
-        keyHighlights,
+        summary: cleanSummary.length > 260 ? cleanSummary.substring(0, 257) + '...' : cleanSummary,
+        keyHighlights: keyHighlights.length > 0 ? keyHighlights : undefined,
       };
     });
 
@@ -429,45 +624,32 @@ export const newsService = {
 
     if (onProgress) onProgress(`Analizadas y resumidas las ${finalArticles.length} noticias seleccionadas.`);
 
-    // 5. GENERAR EL GUION DE LOCUCIÓN POR AUDIO MÁS EXTENSO Y DETALLADO
-    // Repasa varios titulares uno a uno explicando el resumen de lo que se cuenta
+    // 5. GENERAR EL GUION DE LOCUCIÓN EN AUDIO SIN REPETICIONES
     const now = new Date();
     const saludo = now.getHours() < 13 ? 'Buenos días' : now.getHours() < 20 ? 'Buenas tardes' : 'Buenas noches';
     const horaActual = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-    let audioScript = `${saludo}. Iniciamos el repaso informativo completo de ${scopeName} correspondiente a las últimas 24 horas, emitido a las ${horaActual}. `;
+    let audioScript = `${saludo}. Presentamos la síntesis informativa de ${scopeName} a las ${horaActual}. `;
     
     if (matchedArticles.length > 0) {
       const distinctTags = Array.from(new Set(matchedArticles.flatMap((m) => m.matchedTags))).slice(0, 4).join(', ');
-      audioScript += `Hemos priorizado en cabecera las informaciones vinculadas a tus temas de seguimiento: ${distinctTags}. `;
+      audioScript += `Destacamos temas clave sobre ${distinctTags}. `;
     } else {
-      audioScript += `A continuación analizamos los principales acontecimientos del sector recopilados en medios y fuentes oficiales. `;
+      audioScript += `Analizamos las principales novedades del sector recopiladas en medios oficiales. `;
     }
 
-    // Repasar noticia por noticia de forma extensa (hasta 4 noticias en profundidad)
     finalArticles.slice(0, 4).forEach((art, index) => {
-      const ordinal = index === 0 ? 'En primer lugar' : index === 1 ? 'Seguidamente' : index === 2 ? 'En tercer lugar' : 'Para finalizar este bloque';
-      const tagMention = art.matchedTags && art.matchedTags.length > 0 ? ` sobre ${art.matchedTags.join(' y ')}` : '';
+      const ordinal = index === 0 ? 'Primer titular' : index === 1 ? 'Segunda noticia' : index === 2 ? 'Tercera noticia' : 'Finalmente';
       
-      audioScript += `${ordinal}, según reporta ${art.source}${tagMention}: "${art.title}". `;
-      if (art.summary) {
-        audioScript += `${art.summary} `;
-      }
-      if (art.keyHighlights && art.keyHighlights.length > 1) {
-        audioScript += `Como punto destacado: ${art.keyHighlights[1]} `;
-      }
+      audioScript += `${ordinal}: "${art.title}". Resumen: ${art.summary} `;
     });
 
-    if (finalArticles.length > 4) {
-      audioScript += `Además de estos temas, dispones de ${finalArticles.length - 4} noticias adicionales preparadas en la pantalla con sus titulares y fuentes oficiales directas. `;
-    }
+    audioScript += `Este es tu resumen para ${scopeName}. Puedes acceder a los enlaces de cada fuente oficial para ampliar detalles.`;
 
-    audioScript += `Este ha sido tu resumen de actualidad para ${scopeName}. Tienes todos los enlaces oficiales disponibles para profundizar en cada información.`;
-
-    // 6. GENERAR PUNTOS CLAVE DE RESUMEN EJECUTIVO (Titular + Resumen claro)
+    // 6. GENERAR PUNTOS CLAVE DE RESUMEN EJECUTIVO (Solo Resumen directo con Tag)
     const summaryBulletPoints = finalArticles.map((art) => {
       const tagPrefix = art.matchedTags.length > 0 ? `[#${art.matchedTags.join(', #')}] ` : '';
-      return `${tagPrefix}${art.title}: ${art.summary}`;
+      return `${tagPrefix}${art.summary}`;
     });
 
     return {

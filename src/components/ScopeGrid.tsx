@@ -4,6 +4,11 @@ import {
   TrendingUp, 
   Building2, 
   Cpu, 
+  Brain,
+  Activity,
+  Compass,
+  Briefcase,
+  Palette,
   Settings, 
   Tag, 
   Globe, 
@@ -41,6 +46,16 @@ export const ScopeGrid: React.FC<ScopeGridProps> = ({
         return <Building2 className="w-5 h-5" />;
       case 'Cpu':
         return <Cpu className="w-5 h-5" />;
+      case 'Brain':
+        return <Brain className="w-5 h-5" />;
+      case 'Activity':
+        return <Activity className="w-5 h-5" />;
+      case 'Compass':
+        return <Compass className="w-5 h-5" />;
+      case 'Briefcase':
+        return <Briefcase className="w-5 h-5" />;
+      case 'Palette':
+        return <Palette className="w-5 h-5" />;
       default:
         return <Sparkles className="w-5 h-5" />;
     }

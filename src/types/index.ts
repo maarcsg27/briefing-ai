@@ -1,4 +1,15 @@
-export type ScopeId = 'futbol' | 'finanzas' | 'politica' | 'tecnologia' | string;
+export type ScopeId = 
+  | 'crecimiento-personal' 
+  | 'finanzas' 
+  | 'tecnologia' 
+  | 'salud-bienestar' 
+  | 'ciencia-historia' 
+  | 'negocios-carrera' 
+  | 'creatividad-diseno' 
+  | 'politica' 
+  | 'deportes-competicion' 
+  | 'futbol' 
+  | string;
 
 export interface ScopeSource {
   id: string;
@@ -7,6 +18,20 @@ export interface ScopeSource {
   enabled: boolean;
   isOfficial: boolean;
   category: string;
+  description?: string;
+  discoveredByAI?: boolean;
+  rssUrl?: string;
+}
+
+export interface DiscoveredSource {
+  id: string;
+  name: string;
+  domain: string;
+  description: string;
+  category: string;
+  scopeId: string;
+  sourceType: 'blog' | 'foro' | 'prensa' | 'podcast' | 'oficial';
+  url: string;
 }
 
 export interface ScopePreferences {
@@ -17,6 +42,7 @@ export interface ScopePreferences {
   preferredTime: string; // ej: "08:30"
   maxNewsLimit?: number; // Límite de noticias a mostrar (ej. 3, 5, 10)
   tags: string[]; // Etiquetas prioritarias: ej. ["Real Madrid", "Mbappé"]
+  subcategories?: string[]; // Subtemáticas asociadas al ámbito
   sources: ScopeSource[];
 }
 
@@ -28,6 +54,7 @@ export interface ScopeDefinition {
   color: string;
   accentGradient: string;
   description: string;
+  subcategories?: string[];
   defaultPreferences: ScopePreferences;
 }
 
