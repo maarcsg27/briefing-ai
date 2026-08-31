@@ -165,11 +165,14 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Cabecera y Botón de Acceso al Configurador */}
+      {/* Cabecera con Reloj de Cuenta Atrás y Acceso al Configurador */}
       <Header 
         onVoiceCommand={handleVoiceCommand} 
         onOpenConfigurator={() => handleOpenConfigurator()} 
-        statusText={voiceNotice} 
+        statusText={voiceNotice}
+        scopes={scopes}
+        preferencesMap={preferencesMap}
+        visibleScopeIds={visibleScopeIds}
       />
 
       {/* Contenedor Principal */}

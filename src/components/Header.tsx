@@ -1,29 +1,99 @@
-import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, Radio, Clock, Sparkles, Sliders } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Mic, MicOff, Radio, Sparkles, Sliders, Timer } from 'lucide-react';
 import { speechService } from '../services/speechService';
+import type { ScopeDefinition, ScopePreferences } from '../types';
 
 interface HeaderProps {
   onVoiceCommand: (command: string) => void;
   onOpenConfigurator?: () => void;
   statusText?: string;
+  scopes?: ScopeDefinition[];
+  preferencesMap?: Record<string, ScopePreferences>;
+  visibleScopeIds?: string[];
 }
 
-export const Header: React.FC<HeaderProps> = ({ onVoiceCommand, onOpenConfigurator, statusText }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  onVoiceCommand, 
+  onOpenConfigurator, 
+  statusText,
+  scopes = [],
+  preferencesMap = {},
+  visibleScopeIds = []
+}) => {
   const [isListening, setIsListening] = useState(false);
-  const [currentTime, setCurrentTime] = useState<string>('');
   const [activeSpeechInfo, setActiveSpeechInfo] = useState<string>('');
+  
+  // Estado del contador regresivo y reloj
+  const [countdown, setCountdown] = useState<string>('--:--:--');
+  const [nextUpdateInfo, setNextUpdateInfo] = useState<{ time: string; scopeName: string }>({
+    time: '08:30',
+    scopeName: 'Noticias',
+  });
 
+  // Calcular la lista de horas preferidas de las categorías visibles en la web
+  const scheduledUpdates = useMemo(() => {
+    const activeScopes = scopes.filter((s) => visibleScopeIds.length === 0 || visibleScopeIds.includes(s.id));
+    return activeScopes.map((s) => {
+      const prefs = preferencesMap[s.id] || s.defaultPreferences;
+      return {
+        scopeName: s.name,
+        time: prefs.preferredTime || '08:30',
+      };
+    });
+  }, [scopes, visibleScopeIds, preferencesMap]);
+
+  // Actualizar la cuenta atrás cada segundo hacia la siguiente hora de actualización más próxima
   useEffect(() => {
-    const updateTime = () => {
+    const calculateCountdown = () => {
       const now = new Date();
-      setCurrentTime(
-        now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-      );
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentSeconds = now.getSeconds();
+      const currentTotalSeconds = currentHours * 3600 + currentMinutes * 60 + currentSeconds;
+
+      if (scheduledUpdates.length === 0) {
+        setCountdown('--:--:--');
+        return;
+      }
+
+      // Buscar la actualización más próxima en el día o para mañana
+      let minDiffSeconds = Infinity;
+      let nextTargetTime = '';
+      let nextTargetScope = '';
+
+      scheduledUpdates.forEach((item) => {
+        const [h, m] = item.time.split(':').map(Number);
+        const targetSeconds = (h || 0) * 3600 + (m || 0) * 60;
+        
+        let diff = targetSeconds - currentTotalSeconds;
+        // Si la hora ya pasó hoy, se programa para mañana (+24h)
+        if (diff <= 0) {
+          diff += 24 * 3600;
+        }
+
+        if (diff < minDiffSeconds) {
+          minDiffSeconds = diff;
+          nextTargetTime = item.time;
+          nextTargetScope = item.scopeName;
+        }
+      });
+
+      const hoursLeft = Math.floor(minDiffSeconds / 3600);
+      const minutesLeft = Math.floor((minDiffSeconds % 3600) / 60);
+      const secondsLeft = minDiffSeconds % 60;
+
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      setCountdown(`${pad(hoursLeft)}:${pad(minutesLeft)}:${pad(secondsLeft)}`);
+      setNextUpdateInfo({
+        time: nextTargetTime,
+        scopeName: nextTargetScope,
+      });
     };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
+
+    calculateCountdown();
+    const interval = setInterval(calculateCountdown, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [scheduledUpdates]);
 
   const handleToggleListen = () => {
     if (isListening) {
@@ -85,11 +155,26 @@ export const Header: React.FC<HeaderProps> = ({ onVoiceCommand, onOpenConfigurat
           </div>
         </div>
 
-        {/* Reloj y Acciones de Voz */}
+        {/* Cuenta Atrás y Acciones de Voz */}
         <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300">
-            <Clock className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="font-mono">{currentTime}</span>
+          
+          {/* Reloj con Cuenta Atrás hasta la siguiente hora de actualización */}
+          <div 
+            title={`Próxima actualización a las ${nextUpdateInfo.time} h (${nextUpdateInfo.scopeName})`}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 shadow-inner group transition"
+          >
+            <div className="flex items-center gap-1.5">
+              <Timer className="w-4 h-4 text-emerald-400 animate-pulse" />
+              <span className="text-[11px] uppercase font-bold tracking-wider text-slate-400 group-hover:text-emerald-300 transition">
+                Próxima en:
+              </span>
+            </div>
+            <span className="font-mono text-xs sm:text-sm font-bold text-emerald-300 tracking-wider">
+              {countdown}
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium pl-1 border-l border-slate-700/60 hidden md:inline">
+              {nextUpdateInfo.time}h ({nextUpdateInfo.scopeName})
+            </span>
           </div>
 
           {/* Botón de Configurador General */}
