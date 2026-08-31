@@ -142,6 +142,22 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
     onUpdatePreferences(selectedScopeId, updated);
   };
 
+  const handleEnableAllSources = () => {
+    const updated: ScopePreferences = {
+      ...activePrefs,
+      sources: activePrefs.sources.map((s) => ({ ...s, enabled: true })),
+    };
+    onUpdatePreferences(selectedScopeId, updated);
+  };
+
+  const handleDisableAllSources = () => {
+    const updated: ScopePreferences = {
+      ...activePrefs,
+      sources: activePrefs.sources.map((s) => ({ ...s, enabled: false })),
+    };
+    onUpdatePreferences(selectedScopeId, updated);
+  };
+
   const handleAddManualSource = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSourceName.trim() || !newSourceDomain.trim()) return;
@@ -509,7 +525,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
 
           {/* FUENTES DE REFERENCIA DE LA BIBLIOTECA */}
           <div className="bg-slate-900/80 rounded-2xl border border-slate-800 p-6 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h4 className="text-base font-bold text-white flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -518,6 +534,23 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                 <p className="text-xs text-slate-400 mt-0.5">
                   Webs, prensa, blogs y foros configurados para rastrear este ámbito.
                 </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleEnableAllSources}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 text-xs font-semibold border border-emerald-500/40 transition"
+                >
+                  Activar Todas
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDisableAllSources}
+                  className="px-3 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-rose-200 text-xs font-semibold border border-rose-500/40 transition"
+                >
+                  Desactivar Todas
+                </button>
               </div>
             </div>
 

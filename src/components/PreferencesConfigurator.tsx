@@ -110,6 +110,10 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
     setTempVisibleIds(scopes.map((s) => s.id));
   };
 
+  const handleDeselectAll = () => {
+    setTempVisibleIds([]);
+  };
+
   const handleSaveVisibility = () => {
     onSaveVisibleScopeIds(tempVisibleIds);
     setSelectorSavedFeedback(true);
@@ -357,9 +361,16 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                 <button
                   type="button"
                   onClick={handleSelectAll}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition"
+                  className="px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 text-xs font-semibold border border-emerald-500/40 transition"
                 >
                   Activar Todas
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeselectAll}
+                  className="px-3 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 hover:text-rose-200 text-xs font-semibold border border-rose-500/40 transition"
+                >
+                  Desactivar Todas
                 </button>
               </div>
             </div>
