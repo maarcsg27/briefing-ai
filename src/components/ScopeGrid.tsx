@@ -5,12 +5,10 @@ import {
   Building2, 
   Cpu, 
   Settings, 
-  Play, 
   Tag, 
   Globe, 
   Clock, 
-  Sparkles,
-  Loader2
+  Sparkles
 } from 'lucide-react';
 import type { ScopeDefinition, ScopePreferences } from '../types';
 
@@ -53,12 +51,20 @@ export const ScopeGrid: React.FC<ScopeGridProps> = ({
       {scopes.map((scope) => {
         const prefs = preferencesMap[scope.id] || scope.defaultPreferences;
         const isActive = activeScopeId === scope.id;
-        const isCurrentLoading = isLoading && isActive;
 
         return (
           <div
             key={scope.id}
-            className={`relative rounded-2xl border transition-all duration-300 flex flex-col justify-between overflow-hidden ${
+            onClick={() => onSelectScope(scope)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelectScope(scope);
+              }
+            }}
+            className={`relative rounded-2xl border transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer group ${
               isActive
                 ? 'bg-slate-900 border-emerald-500/80 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/50'
                 : 'bg-slate-900/60 hover:bg-slate-900/90 border-slate-800 hover:border-slate-700'
@@ -140,29 +146,21 @@ export const ScopeGrid: React.FC<ScopeGridProps> = ({
               </div>
             </div>
 
-            {/* Botón Principal: "Actualización de [Ámbito]" */}
-            <div className="p-4 bg-slate-950/40 border-t border-slate-800/60">
-              <button
-                onClick={() => onSelectScope(scope)}
-                disabled={isLoading}
-                className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md ${
-                  isActive
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 ring-2 ring-emerald-400/40'
-                    : 'bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white border border-slate-700 hover:border-transparent'
-                }`}
-              >
-                {isCurrentLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>Buscando en webs oficiales...</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>{scope.label}</span>
-                  </>
-                )}
-              </button>
+            {/* Pie de tarjeta: Indicador informativo de hora de actualización programada */}
+            <div className="p-3.5 bg-slate-950/50 border-t border-slate-800/60 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
+                <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Actualización automática: <strong>{prefs.preferredTime}h</strong></span>
+              </span>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                isActive 
+                  ? isLoading
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse'
+                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                  : 'text-slate-500 group-hover:text-slate-300'
+              }`}>
+                {isActive ? (isLoading ? 'Actualizando...' : 'En pantalla') : 'Ver noticias'}
+              </span>
             </div>
 
           </div>

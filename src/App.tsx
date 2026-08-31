@@ -59,6 +59,34 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  // Comprobación automática cada minuto: si la hora actual coincide con la hora marcada de una categoría activa, actualizar automáticamente
+  useEffect(() => {
+    const checkScheduledAutoUpdate = () => {
+      const now = new Date();
+      const currentHHMM = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+      // Revisar categorías visibles
+      const activeScopes = scopes.filter((s) => visibleScopeIds.length === 0 || visibleScopeIds.includes(s.id));
+      for (const s of activeScopes) {
+        const prefs = preferencesMap[s.id] || s.defaultPreferences;
+        if (prefs.preferredTime === currentHHMM) {
+          // Comprobar si ya se actualizó hoy a esta hora
+          const today = now.toISOString().slice(0, 10);
+          const autoKey = `auto_updated_${s.id}_${today}_${currentHHMM}`;
+          if (!sessionStorage.getItem(autoKey)) {
+            sessionStorage.setItem(autoKey, 'true');
+            console.log(`[Auto-Update] Hora marcada cumplida para ${s.name} (${currentHHMM}). Actualizando noticias 24h...`);
+            handleGenerateBriefing(s, prefs, true, true);
+            break;
+          }
+        }
+      }
+    };
+
+    const timer = setInterval(checkScheduledAutoUpdate, 15000); // comprobar cada 15s
+    return () => clearInterval(timer);
+  }, [scopes, visibleScopeIds, preferencesMap]);
+
   // Función para ejecutar la búsqueda exhaustiva de las últimas 24h
   const handleGenerateBriefing = async (
     scope: ScopeDefinition,
@@ -305,7 +333,11 @@ export const App: React.FC = () => {
             preferencesMap={preferencesMap}
             activeScopeId={activeScope?.id || null}
             isLoading={isLoading}
-            onSelectScope={(scope) => handleGenerateBriefing(scope, undefined, true)}
+            onSelectScope={(scope) => {
+              if (activeScope?.id !== scope.id) {
+                handleGenerateBriefing(scope, undefined, false, false);
+              }
+            }}
             onOpenPreferences={(scope) => handleOpenConfigurator(scope, 'edit')}
             onAddNewScope={() => handleOpenConfigurator(undefined, 'create')}
           />
