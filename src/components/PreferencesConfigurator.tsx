@@ -405,19 +405,6 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                         </div>
                       </div>
                     </div>
-
-                    {/* Botón rápido para ir a editar sus etiquetas */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectScopeId(scope.id);
-                        setActiveTab('edit');
-                      }}
-                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition shrink-0"
-                    >
-                      Editar Tags
-                    </button>
                   </div>
                 );
               })}
