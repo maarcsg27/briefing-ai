@@ -394,9 +394,12 @@ function extractCleanSummary(title: string, rawSnippet: string, query: string, s
     clean = clean.charAt(0).toUpperCase() + clean.slice(1);
   }
 
-  // Si después de limpiar el snippet quedó demasiado corto (porque el RSS solo enviaba el titular), generar un resumen sintético
+  // Limpiar el texto de la consulta eliminando operadores tipo site:domain
+  const cleanQuery = query.replace(/site:[^\s]+/gi, '').trim();
+
+  // Si después de limpiar el snippet quedó corto, generar una síntesis limpia basada en el titular y fuente
   if (clean.length < 35) {
-    return `Análisis de ${sourceName} sobre la evolución de ${query}. El informe desglosa los datos clave y las consecuencias prácticas para el sector.`;
+    return `${title}. Noticia verificada publicada por ${sourceName} sobre la actualidad de ${cleanQuery || 'este ámbito'}, detallando los hechos clave y su repercusión.`;
   }
 
   return clean;

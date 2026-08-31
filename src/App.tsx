@@ -7,8 +7,9 @@ import { NewsFeed } from './components/NewsFeed';
 import { LibraryManager } from './components/LibraryManager';
 import { storageService } from './services/storageService';
 import { newsService } from './services/newsService';
+import { geminiService } from './services/geminiService';
 import type { ScopeDefinition, ScopePreferences, BriefingResult } from './types';
-import { Sparkles, ArrowDown, Sliders, Radio, Library } from 'lucide-react';
+import { Sparkles, ArrowDown, Sliders, Radio, Library, Key, Bot } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'briefings' | 'library'>('briefings');
@@ -319,6 +320,22 @@ export const App: React.FC = () => {
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>Búsqueda Exhaustiva 24h & Locución</span>
                     </div>
+
+                    {geminiService.hasValidKey() ? (
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-[11px] sm:text-xs font-semibold">
+                        <Bot className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Gemini 2.5 Flash IA Activo</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setActiveTab('library')}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] sm:text-xs font-semibold transition"
+                      >
+                        <Key className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Activar Gemini API Key para Resúmenes por IA ➔</span>
+                      </button>
+                    )}
+
                     {lastSyncTime && (
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300 text-[11px] sm:text-xs font-mono">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
