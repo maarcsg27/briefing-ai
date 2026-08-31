@@ -1,6 +1,6 @@
 import type { ScopeDefinition, ScopePreferences } from '../types';
 
-export const INITIAL_SCOPES: ScopeDefinition[] = [
+export const DEFAULT_SCOPES: ScopeDefinition[] = [
   {
     id: 'futbol',
     name: 'Fútbol',
@@ -101,9 +101,60 @@ export const INITIAL_SCOPES: ScopeDefinition[] = [
   },
 ];
 
-const PREFERENCES_STORAGE_KEY = 'briefing_ai_preferences_v1';
+const SCOPES_LIST_KEY = 'briefing_ai_scopes_catalog_v2';
+const PREFERENCES_STORAGE_KEY = 'briefing_ai_preferences_v2';
 
 export const storageService = {
+  getAllScopes(): ScopeDefinition[] {
+    try {
+      const stored = localStorage.getItem(SCOPES_LIST_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Error loading scopes catalog:', e);
+    }
+    // Guardar por defecto si no existía
+    this.saveAllScopes(DEFAULT_SCOPES);
+    return DEFAULT_SCOPES;
+  },
+
+  saveAllScopes(scopes: ScopeDefinition[]): void {
+    try {
+      localStorage.setItem(SCOPES_LIST_KEY, JSON.stringify(scopes));
+    } catch (e) {
+      console.error('Error saving scopes catalog:', e);
+    }
+  },
+
+  addScope(newScope: ScopeDefinition): ScopeDefinition[] {
+    const existing = this.getAllScopes();
+    const updated = [...existing, newScope];
+    this.saveAllScopes(updated);
+    this.savePreferences(newScope.defaultPreferences);
+    return updated;
+  },
+
+  updateScope(updatedScope: ScopeDefinition): ScopeDefinition[] {
+    const existing = this.getAllScopes();
+    const updated = existing.map((s) => (s.id === updatedScope.id ? updatedScope : s));
+    this.saveAllScopes(updated);
+    return updated;
+  },
+
+  deleteScope(scopeId: string): ScopeDefinition[] {
+    const existing = this.getAllScopes();
+    const updated = existing.filter((s) => s.id !== scopeId);
+    this.saveAllScopes(updated);
+    try {
+      localStorage.removeItem(`${PREFERENCES_STORAGE_KEY}_${scopeId}`);
+    } catch (_) {}
+    return updated;
+  },
+
   getPreferences(scopeId: string): ScopePreferences {
     try {
       const stored = localStorage.getItem(`${PREFERENCES_STORAGE_KEY}_${scopeId}`);
@@ -113,7 +164,9 @@ export const storageService = {
     } catch (e) {
       console.error('Error loading preferences for scope:', scopeId, e);
     }
-    const def = INITIAL_SCOPES.find((s) => s.id === scopeId);
+
+    const all = this.getAllScopes();
+    const def = all.find((s) => s.id === scopeId);
     return def ? def.defaultPreferences : {
       scopeId,
       geographicScope: 'nacional',
@@ -127,16 +180,17 @@ export const storageService = {
 
   savePreferences(preferences: ScopePreferences): void {
     try {
+      // Limitar a máximo 20 etiquetas por seguridad y requerimiento
+      const sanitized = {
+        ...preferences,
+        tags: preferences.tags.slice(0, 20),
+      };
       localStorage.setItem(
-        `${PREFERENCES_STORAGE_KEY}_${preferences.scopeId}`,
-        JSON.stringify(preferences)
+        `${PREFERENCES_STORAGE_KEY}_${sanitized.scopeId}`,
+        JSON.stringify(sanitized)
       );
     } catch (e) {
       console.error('Error saving preferences:', e);
     }
-  },
-
-  getAllScopes(): ScopeDefinition[] {
-    return INITIAL_SCOPES;
   },
 };

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, Radio, Clock, Sparkles } from 'lucide-react';
+import { Mic, MicOff, Radio, Clock, Sparkles, Sliders } from 'lucide-react';
 import { speechService } from '../services/speechService';
 
 interface HeaderProps {
   onVoiceCommand: (command: string) => void;
+  onOpenConfigurator?: () => void;
   statusText?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onVoiceCommand, statusText }) => {
+export const Header: React.FC<HeaderProps> = ({ onVoiceCommand, onOpenConfigurator, statusText }) => {
   const [isListening, setIsListening] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>('');
   const [activeSpeechInfo, setActiveSpeechInfo] = useState<string>('');
@@ -90,6 +91,18 @@ export const Header: React.FC<HeaderProps> = ({ onVoiceCommand, statusText }) =>
             <Clock className="w-3.5 h-3.5 text-emerald-400" />
             <span className="font-mono">{currentTime}</span>
           </div>
+
+          {/* Botón de Configurador General */}
+          {onOpenConfigurator && (
+            <button
+              onClick={onOpenConfigurator}
+              title="Abrir configurador de categorías y preferencias"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 transition shadow-sm"
+            >
+              <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Configurador</span>
+            </button>
+          )}
 
           {/* Botón de Comando por Voz */}
           <div className="flex items-center gap-2">

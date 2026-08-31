@@ -1,35 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { ScopeGrid } from './components/ScopeGrid';
-import { PreferencesModal } from './components/PreferencesModal';
+import { PreferencesConfigurator } from './components/PreferencesConfigurator';
 import { BriefingPlayer } from './components/BriefingPlayer';
 import { NewsFeed } from './components/NewsFeed';
 import { storageService } from './services/storageService';
 import { newsService } from './services/newsService';
 import type { ScopeDefinition, ScopePreferences, BriefingResult } from './types';
-import { Sparkles, ArrowDown } from 'lucide-react';
+import { Sparkles, ArrowDown, Sliders, PlusCircle } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const [scopes] = useState<ScopeDefinition[]>(storageService.getAllScopes());
+  const [scopes, setScopes] = useState<ScopeDefinition[]>([]);
   const [preferencesMap, setPreferencesMap] = useState<Record<string, ScopePreferences>>({});
   const [activeScope, setActiveScope] = useState<ScopeDefinition | null>(null);
-  const [modalScope, setModalScope] = useState<ScopeDefinition | null>(null);
+  
+  // Estado del Configurador de Preferencias
+  const [isConfiguratorOpen, setIsConfiguratorOpen] = useState<boolean>(false);
+  const [configuratorSelectedId, setConfiguratorSelectedId] = useState<string | null>(null);
+
   const [currentBriefing, setCurrentBriefing] = useState<BriefingResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState<string>('');
 
-  // Cargar preferencias iniciales al montar
+  // Cargar catálogo de categorías y sus preferencias
   useEffect(() => {
-    const loaded: Record<string, ScopePreferences> = {};
-    scopes.forEach((s) => {
-      loaded[s.id] = storageService.getPreferences(s.id);
-    });
-    setPreferencesMap(loaded);
+    const loadedScopes = storageService.getAllScopes();
+    setScopes(loadedScopes);
 
-    // Seleccionar fútbol por defecto para mostrar contenido inmediato
-    const defaultScope = scopes[0];
-    if (defaultScope) {
-      handleGenerateBriefing(defaultScope, loaded[defaultScope.id] || defaultScope.defaultPreferences, false);
+    const loadedPrefs: Record<string, ScopePreferences> = {};
+    loadedScopes.forEach((s) => {
+      loadedPrefs[s.id] = storageService.getPreferences(s.id);
+    });
+    setPreferencesMap(loadedPrefs);
+
+    // Activar por defecto el primer ámbito (Fútbol o el primero disponible)
+    const initial = loadedScopes[0];
+    if (initial) {
+      handleGenerateBriefing(initial, loadedPrefs[initial.id] || initial.defaultPreferences, false);
     }
   }, []);
 
@@ -46,7 +53,6 @@ export const App: React.FC = () => {
       const result = await newsService.generateBriefing(scope.id, activePrefs, scope.name);
       setCurrentBriefing(result);
       if (triggerSpeech && result.audioScript) {
-        // En reproducción interactiva, iniciamos con un breve retardo natural
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('briefing-auto-play'));
         }, 300);
@@ -58,20 +64,61 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleOpenPreferences = (scope: ScopeDefinition) => {
-    setModalScope(scope);
+  // Abrir el configurador centrado en una categoría específica o general
+  const handleOpenConfigurator = (scope?: ScopeDefinition) => {
+    if (scope) {
+      setConfiguratorSelectedId(scope.id);
+    } else if (scopes.length > 0) {
+      setConfiguratorSelectedId(scopes[0].id);
+    }
+    setIsConfiguratorOpen(true);
   };
 
-  const handleSavePreferences = (newPrefs: ScopePreferences) => {
+  // Guardar preferencias y descripción de categoría
+  const handleSavePreferences = (newPrefs: ScopePreferences, updatedScope?: ScopeDefinition) => {
     storageService.savePreferences(newPrefs);
     setPreferencesMap((prev) => ({
       ...prev,
       [newPrefs.scopeId]: newPrefs,
     }));
 
-    // Si el ámbito modificado es el que está activo actualmente, regenerar el briefing
+    if (updatedScope) {
+      const updatedList = storageService.updateScope(updatedScope);
+      setScopes(updatedList);
+      if (activeScope && activeScope.id === updatedScope.id) {
+        setActiveScope(updatedScope);
+      }
+    }
+
+    // Regenerar si es el ámbito que está en pantalla
     if (activeScope && activeScope.id === newPrefs.scopeId) {
-      handleGenerateBriefing(activeScope, newPrefs, false);
+      const currentDef = updatedScope || activeScope;
+      handleGenerateBriefing(currentDef, newPrefs, false);
+    }
+  };
+
+  // Crear nueva categoría dinámica
+  const handleCreateScope = (newScope: ScopeDefinition) => {
+    const updated = storageService.addScope(newScope);
+    setScopes(updated);
+    setPreferencesMap((prev) => ({
+      ...prev,
+      [newScope.id]: newScope.defaultPreferences,
+    }));
+    setConfiguratorSelectedId(newScope.id);
+    // Cambiar al nuevo ámbito
+    handleGenerateBriefing(newScope, newScope.defaultPreferences, false);
+  };
+
+  // Eliminar categoría personalizada
+  const handleDeleteScope = (scopeId: string) => {
+    const updated = storageService.deleteScope(scopeId);
+    setScopes(updated);
+    if (updated.length > 0) {
+      setConfiguratorSelectedId(updated[0].id);
+      if (activeScope?.id === scopeId) {
+        handleGenerateBriefing(updated[0], undefined, false);
+      }
     }
   };
 
@@ -80,22 +127,16 @@ export const App: React.FC = () => {
     const cmdLower = command.toLowerCase();
     setVoiceNotice(`Comando de voz recibido: "${command}"`);
 
-    let targetScope: ScopeDefinition | undefined;
+    const matchedScope = scopes.find((s) => {
+      const nameMatch = cmdLower.includes(s.name.toLowerCase());
+      const labelMatch = cmdLower.includes(s.id.toLowerCase());
+      return nameMatch || labelMatch;
+    });
 
-    if (cmdLower.includes('fútbol') || cmdLower.includes('futbol') || cmdLower.includes('deporte')) {
-      targetScope = scopes.find((s) => s.id === 'futbol');
-    } else if (cmdLower.includes('finanza') || cmdLower.includes('economía') || cmdLower.includes('bolsa')) {
-      targetScope = scopes.find((s) => s.id === 'finanzas');
-    } else if (cmdLower.includes('política') || cmdLower.includes('politica') || cmdLower.includes('congreso')) {
-      targetScope = scopes.find((s) => s.id === 'politica');
-    } else if (cmdLower.includes('tecnología') || cmdLower.includes('tecnologia') || cmdLower.includes('ia')) {
-      targetScope = scopes.find((s) => s.id === 'tecnologia');
-    }
-
-    if (targetScope) {
-      handleGenerateBriefing(targetScope, preferencesMap[targetScope.id], true);
+    if (matchedScope) {
+      handleGenerateBriefing(matchedScope, preferencesMap[matchedScope.id], true);
     } else {
-      setVoiceNotice(`No se reconoció el ámbito en: "${command}". Prueba diciendo: "Actualización de Fútbol"`);
+      setVoiceNotice(`No se reconoció el ámbito en: "${command}". Puedes elegirlo en la pantalla.`);
     }
 
     setTimeout(() => setVoiceNotice(''), 6000);
@@ -103,36 +144,62 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Cabecera y Micrófono */}
-      <Header onVoiceCommand={handleVoiceCommand} statusText={voiceNotice} />
+      {/* Cabecera y Botón de Acceso al Configurador */}
+      <Header 
+        onVoiceCommand={handleVoiceCommand} 
+        onOpenConfigurator={() => handleOpenConfigurator()} 
+        statusText={voiceNotice} 
+      />
 
       {/* Contenedor Principal */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
         
-        {/* Banner de Bienvenida & Explicación Rápida */}
+        {/* Banner de Bienvenida y Acceso Directo al Configurador */}
         <div className="relative rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-800 p-6 sm:p-8 overflow-hidden shadow-2xl">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-3">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Tu Asistente Personal de Noticias Filtradas</span>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-3">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Asistente Personalizado de Noticias por Voz</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">
+                Locución de actualidad y titulares al instante.
+              </h2>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Escucha el resumen oficial de cada ámbito o utiliza el <strong>Configurador de Preferencias</strong> para añadir categorías, configurar tu hora de búsqueda y definir hasta <strong>20 etiquetas específicas</strong>.
+              </p>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">
-              Locución de actualidad y titulares al instante.
-            </h2>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              Pulsa el botón del ámbito que desees o personaliza tus <strong>etiquetas de interés</strong> (equipos, jugadores, empresas, índices) para que el asistente rastree exclusivamente noticias en <strong>webs y páginas oficiales</strong>.
-            </p>
+
+            <div className="flex sm:flex-col gap-2.5 shrink-0">
+              <button
+                onClick={() => handleOpenConfigurator()}
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition"
+              >
+                <Sliders className="w-4 h-4" />
+                <span>Configurador de Preferencias</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  handleOpenConfigurator();
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700 transition"
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>+ Crear Categoría</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Sección de Botones de Ámbitos y Preferencias */}
+        {/* Sección de Categorías y Botones de Ámbito */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
-              Selecciona un ámbito para escuchar su actualización:
+              Categorías de Noticias Disponibles:
             </h3>
-            <span className="text-xs text-slate-500 hidden sm:inline">
-              ⚙️ Pulsa "Preferencias" para añadir tus etiquetas
+            <span className="text-xs text-slate-400">
+              {scopes.length} categorías activas
             </span>
           </div>
 
@@ -142,7 +209,8 @@ export const App: React.FC = () => {
             activeScopeId={activeScope?.id || null}
             isLoading={isLoading}
             onSelectScope={(scope) => handleGenerateBriefing(scope, undefined, true)}
-            onOpenPreferences={handleOpenPreferences}
+            onOpenPreferences={handleOpenConfigurator}
+            onAddNewScope={() => handleOpenConfigurator()}
           />
         </section>
 
@@ -155,18 +223,13 @@ export const App: React.FC = () => {
         {/* Sección de Resultados: Reproductor de Voz + Feed de Noticias */}
         {currentBriefing && (
           <section className="space-y-6 animate-fadeIn">
-            
-            {/* 1. Reproductor de Audio del Asistente */}
             <BriefingPlayer briefing={currentBriefing} autoPlay={false} />
-
-            {/* 2. Resumen Escrito y Titulares con Fuentes Oficiales */}
             <NewsFeed
               briefing={currentBriefing}
               selectedTags={
                 (activeScope && preferencesMap[activeScope.id]?.tags) || []
               }
             />
-
           </section>
         )}
 
@@ -179,18 +242,17 @@ export const App: React.FC = () => {
         </p>
       </footer>
 
-      {/* Modal de Preferencias (Etiquetas, Geografía, Hora, Fuentes) */}
-      {modalScope && (
-        <PreferencesModal
-          scope={modalScope}
-          initialPreferences={
-            preferencesMap[modalScope.id] || modalScope.defaultPreferences
-          }
-          isOpen={!!modalScope}
-          onClose={() => setModalScope(null)}
-          onSave={handleSavePreferences}
-        />
-      )}
+      {/* Configurador Integral de Preferencias */}
+      <PreferencesConfigurator
+        isOpen={isConfiguratorOpen}
+        onClose={() => setIsConfiguratorOpen(false)}
+        scopes={scopes}
+        selectedScopeId={configuratorSelectedId}
+        onSelectScopeId={(id) => setConfiguratorSelectedId(id)}
+        onSavePreferences={handleSavePreferences}
+        onCreateScope={handleCreateScope}
+        onDeleteScope={handleDeleteScope}
+      />
     </div>
   );
 };

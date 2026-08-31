@@ -21,6 +21,7 @@ interface ScopeGridProps {
   isLoading: boolean;
   onSelectScope: (scope: ScopeDefinition) => void;
   onOpenPreferences: (scope: ScopeDefinition) => void;
+  onAddNewScope?: () => void;
 }
 
 export const ScopeGrid: React.FC<ScopeGridProps> = ({
@@ -30,6 +31,7 @@ export const ScopeGrid: React.FC<ScopeGridProps> = ({
   isLoading,
   onSelectScope,
   onOpenPreferences,
+  onAddNewScope,
 }) => {
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -161,6 +163,27 @@ export const ScopeGrid: React.FC<ScopeGridProps> = ({
           </div>
         );
       })}
+
+      {/* Tarjeta para Crear Nueva Categoría */}
+      {onAddNewScope && (
+        <button
+          type="button"
+          onClick={onAddNewScope}
+          className="rounded-2xl border-2 border-dashed border-slate-800 hover:border-emerald-500/60 bg-slate-900/30 hover:bg-slate-900/60 p-6 flex flex-col items-center justify-center gap-3 text-slate-400 hover:text-emerald-300 transition-all min-h-[220px] group"
+        >
+          <div className="w-12 h-12 rounded-xl bg-slate-800 group-hover:bg-emerald-500/20 flex items-center justify-center text-slate-300 group-hover:text-emerald-400 border border-slate-700 group-hover:border-emerald-500/40 transition">
+            <span className="text-2xl font-bold">+</span>
+          </div>
+          <div className="text-center">
+            <span className="text-sm font-bold text-slate-200 group-hover:text-emerald-300 block mb-0.5">
+              Crear Categoría
+            </span>
+            <span className="text-xs text-slate-500 group-hover:text-slate-400">
+              Personaliza nombre, descripción, hora y hasta 20 etiquetas
+            </span>
+          </div>
+        </button>
+      )}
     </div>
   );
 };
