@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Mic, MicOff, Radio, Sparkles, Sliders, Timer, RefreshCw } from 'lucide-react';
+import { Mic, MicOff, Radio, Sparkles, Sliders, Timer, RefreshCw, Bookmark } from 'lucide-react';
 import { speechService } from '../services/speechService';
 import type { ScopeDefinition, ScopePreferences } from '../types';
 
 interface HeaderProps {
   onVoiceCommand: (command: string) => void;
   onOpenConfigurator?: () => void;
+  onOpenSaveVersionModal?: () => void;
   onTriggerSync?: () => void;
   statusText?: string;
   isSyncing?: boolean;
@@ -17,6 +18,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ 
   onVoiceCommand, 
   onOpenConfigurator, 
+  onOpenSaveVersionModal,
   onTriggerSync,
   statusText,
   isSyncing = false,
@@ -208,6 +210,18 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Sliders className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="inline">Configurador</span>
+              </button>
+            )}
+
+            {/* Botón de Guardar Versión / Perfil */}
+            {onOpenSaveVersionModal && (
+              <button
+                onClick={onOpenSaveVersionModal}
+                title="Guardar o cargar versiones de configuración"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 transition shadow-sm"
+              >
+                <Bookmark className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="inline">Versiones</span>
               </button>
             )}
 

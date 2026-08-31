@@ -15,7 +15,8 @@ import {
   Eye,
   EyeOff,
   Newspaper,
-  ShieldAlert
+  ShieldAlert,
+  Bookmark
 } from 'lucide-react';
 import type { ScopeDefinition, ScopePreferences } from '../types';
 
@@ -31,6 +32,7 @@ interface ConfiguratorModalProps {
   onSavePreferences: (prefs: ScopePreferences, updatedScope?: ScopeDefinition) => void;
   onCreateScope: (newScope: ScopeDefinition) => void;
   onDeleteScope?: (scopeId: string) => void;
+  onOpenSaveVersionModal?: () => void;
 }
 
 export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
@@ -45,6 +47,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
   onSavePreferences,
   onCreateScope,
   onDeleteScope,
+  onOpenSaveVersionModal,
 }) => {
   const [activeTab, setActiveTab] = useState<'selector' | 'edit' | 'create'>(initialTab);
   
@@ -937,13 +940,26 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
 
         {/* Footer con Botón según la Pestaña Activa */}
         <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-800 bg-slate-900/95 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition text-center"
-          >
-            Cerrar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition text-center"
+            >
+              Cerrar
+            </button>
+
+            {onOpenSaveVersionModal && (
+              <button
+                type="button"
+                onClick={onOpenSaveVersionModal}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 border border-indigo-500/40 text-xs font-bold transition"
+              >
+                <Bookmark className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Guardar como Versión / Perfil...</span>
+              </button>
+            )}
+          </div>
 
           {activeTab === 'selector' && (
             <button

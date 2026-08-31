@@ -89,3 +89,12 @@ export interface BriefingResult {
   isExhaustive24h?: boolean;
   lastSearchDate?: string;
 }
+
+export interface ConfigVersion {
+  id: string;
+  name: string;
+  createdAt: string;
+  visibleScopeIds: string[];
+  preferencesMap: Record<string, ScopePreferences>;
+  scopes: ScopeDefinition[];
+}

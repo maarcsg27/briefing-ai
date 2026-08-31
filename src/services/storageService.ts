@@ -1,4 +1,4 @@
-import type { ScopeDefinition, ScopePreferences, ScopeSource } from '../types';
+import type { ScopeDefinition, ScopePreferences, ScopeSource, ConfigVersion } from '../types';
 
 export const DEFAULT_SCOPES: ScopeDefinition[] = [
   {
@@ -450,5 +450,67 @@ export const storageService = {
       return updated;
     }
     return prefs;
+  },
+
+  // --- GESTIÓN DE VERSIONES Y PERFILES DE CONFIGURACIÓN DE LA APP ---
+  getConfigVersions(): ConfigVersion[] {
+    try {
+      const raw = localStorage.getItem('briefing_ai_config_versions_v1');
+      if (raw) return JSON.parse(raw);
+    } catch (e) {
+      console.error('Error loading config versions:', e);
+    }
+    return [];
+  },
+
+  saveConfigVersion(
+    versionName: string,
+    visibleScopeIds: string[],
+    preferencesMap: Record<string, ScopePreferences>,
+    scopes: ScopeDefinition[]
+  ): ConfigVersion {
+    const versions = this.getConfigVersions();
+    const newVersion: ConfigVersion = {
+      id: `ver-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      name: versionName.trim() || `Versión ${new Date().toLocaleDateString('es-ES')}`,
+      createdAt: new Date().toISOString(),
+      visibleScopeIds,
+      preferencesMap,
+      scopes,
+    };
+    const updated = [newVersion, ...versions];
+    try {
+      localStorage.setItem('briefing_ai_config_versions_v1', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Error saving config version:', e);
+    }
+    return newVersion;
+  },
+
+  deleteConfigVersion(versionId: string): ConfigVersion[] {
+    const versions = this.getConfigVersions();
+    const updated = versions.filter((v) => v.id !== versionId);
+    try {
+      localStorage.setItem('briefing_ai_config_versions_v1', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Error deleting config version:', e);
+    }
+    return updated;
+  },
+
+  loadConfigVersion(version: ConfigVersion): void {
+    try {
+      this.saveVisibleScopeIds(version.visibleScopeIds);
+      if (version.preferencesMap) {
+        Object.values(version.preferencesMap).forEach((p) => {
+          this.savePreferences(p);
+        });
+      }
+      if (version.scopes && version.scopes.length > 0) {
+        this.saveAllScopes(version.scopes);
+      }
+    } catch (e) {
+      console.error('Error loading config version:', e);
+    }
   },
 };

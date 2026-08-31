@@ -5,6 +5,7 @@ import { PreferencesConfigurator } from './components/PreferencesConfigurator';
 import { BriefingPlayer } from './components/BriefingPlayer';
 import { NewsFeed } from './components/NewsFeed';
 import { LibraryManager } from './components/LibraryManager';
+import { SaveVersionModal } from './components/SaveVersionModal';
 import { storageService } from './services/storageService';
 import { newsService } from './services/newsService';
 import { geminiService } from './services/geminiService';
@@ -256,12 +257,16 @@ export const App: React.FC = () => {
     setTimeout(() => setVoiceNotice(''), 6000);
   };
 
+  // Estado para Modal de Guardar Versión / Perfil de Configuración
+  const [isSaveVersionModalOpen, setIsSaveVersionModalOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       {/* Cabecera con Reloj de Cuenta Atrás y Acceso al Configurador */}
       <Header 
         onVoiceCommand={handleVoiceCommand} 
         onOpenConfigurator={() => handleOpenConfigurator()} 
+        onOpenSaveVersionModal={() => setIsSaveVersionModalOpen(true)}
         onTriggerSync={handleTriggerFullSync}
         isSyncing={isLoading}
         statusText={syncStatus || voiceNotice}
@@ -450,6 +455,23 @@ export const App: React.FC = () => {
         onSavePreferences={handleSavePreferences}
         onCreateScope={handleCreateScope}
         onDeleteScope={handleDeleteScope}
+        onOpenSaveVersionModal={() => setIsSaveVersionModalOpen(true)}
+      />
+
+      {/* Modal de Guardar y Cargar Versiones / Perfiles de Configuración */}
+      <SaveVersionModal
+        isOpen={isSaveVersionModalOpen}
+        onClose={() => setIsSaveVersionModalOpen(false)}
+        visibleScopeIds={visibleScopeIds}
+        preferencesMap={preferencesMap}
+        scopes={scopes}
+        onApplyVersion={(ver) => {
+          setVisibleScopeIds(ver.visibleScopeIds);
+          setPreferencesMap(ver.preferencesMap);
+          if (ver.scopes && ver.scopes.length > 0) {
+            setScopes(ver.scopes);
+          }
+        }}
       />
     </div>
   );
