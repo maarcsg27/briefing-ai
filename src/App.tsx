@@ -23,6 +23,8 @@ export const App: React.FC = () => {
   const [currentBriefing, setCurrentBriefing] = useState<BriefingResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState<string>('');
+  const [syncStatus, setSyncStatus] = useState<string>('');
+  const [lastSyncTime, setLastSyncTime] = useState<string>('');
 
   // Cargar catálogo de categorías, sus preferencias y cuáles son visibles en la web
   useEffect(() => {
@@ -38,25 +40,68 @@ export const App: React.FC = () => {
     });
     setPreferencesMap(loadedPrefs);
 
-    // Activar por defecto la primera categoría visible
+    const lastSync = storageService.getLastSyncTimestamp();
+    if (lastSync) {
+      const d = new Date(lastSync);
+      setLastSyncTime(d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }));
+    }
+
+    // Activar por defecto la primera categoría visible y comprobar si tiene caché del día
     const initial = loadedScopes.find((s) => loadedVisibleIds.includes(s.id)) || loadedScopes[0];
     if (initial) {
-      handleGenerateBriefing(initial, loadedPrefs[initial.id] || initial.defaultPreferences, false);
+      const cached = storageService.getDailyBriefingCache(initial.id);
+      if (cached) {
+        setActiveScope(initial);
+        setCurrentBriefing(cached);
+      } else {
+        handleGenerateBriefing(initial, loadedPrefs[initial.id] || initial.defaultPreferences, false);
+      }
     }
   }, []);
 
+  // Función para ejecutar la búsqueda exhaustiva de las últimas 24h
   const handleGenerateBriefing = async (
     scope: ScopeDefinition,
     prefs?: ScopePreferences,
-    triggerSpeech: boolean = true
+    triggerSpeech: boolean = true,
+    forceFresh: boolean = false
   ) => {
     setIsLoading(true);
     setActiveScope(scope);
     const activePrefs = prefs || preferencesMap[scope.id] || scope.defaultPreferences;
 
+    // Si no es forzado, revisar si ya tenemos el briefing de hoy en caché
+    if (!forceFresh) {
+      const cached = storageService.getDailyBriefingCache(scope.id);
+      if (cached) {
+        setCurrentBriefing(cached);
+        setIsLoading(false);
+        if (triggerSpeech && cached.audioScript) {
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('briefing-auto-play'));
+          }, 200);
+        }
+        return;
+      }
+    }
+
     try {
-      const result = await newsService.generateBriefing(scope.id, activePrefs, scope.name);
+      setSyncStatus(`Rastreando noticias de las últimas 24h en ${scope.name}...`);
+      const result = await newsService.generateBriefing(
+        scope.id, 
+        activePrefs, 
+        scope.name,
+        (progress) => setSyncStatus(progress)
+      );
+
       setCurrentBriefing(result);
+      storageService.saveDailyBriefingCache(scope.id, result);
+      
+      const nowStr = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      setLastSyncTime(nowStr);
+      setSyncStatus(`Búsqueda de 24h completada con éxito a las ${nowStr}.`);
+      setTimeout(() => setSyncStatus(''), 4000);
+
       if (triggerSpeech && result.audioScript) {
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('briefing-auto-play'));
@@ -64,9 +109,17 @@ export const App: React.FC = () => {
       }
     } catch (err) {
       console.error('Error generating briefing:', err);
+      setSyncStatus('Error al conectar con algunas fuentes de noticias. Mostrando datos de respaldo.');
+      setTimeout(() => setSyncStatus(''), 5000);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Forzar actualización exhaustiva de todas las categorías visibles
+  const handleTriggerFullSync = async () => {
+    if (!activeScope) return;
+    handleGenerateBriefing(activeScope, preferencesMap[activeScope.id], false, true);
   };
 
   // Abrir el configurador centrado en una categoría específica o en una pestaña específica
@@ -169,7 +222,9 @@ export const App: React.FC = () => {
       <Header 
         onVoiceCommand={handleVoiceCommand} 
         onOpenConfigurator={() => handleOpenConfigurator()} 
-        statusText={voiceNotice}
+        onTriggerSync={handleTriggerFullSync}
+        isSyncing={isLoading}
+        statusText={syncStatus || voiceNotice}
         scopes={scopes}
         preferencesMap={preferencesMap}
         visibleScopeIds={visibleScopeIds}
@@ -182,15 +237,23 @@ export const App: React.FC = () => {
         <div className="relative rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-800 p-4 sm:p-6 md:p-8 overflow-hidden shadow-2xl">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-xs font-semibold mb-2.5 sm:mb-3">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Asistente Personalizado de Noticias por Voz</span>
+              <div className="flex flex-wrap items-center gap-2 mb-2.5 sm:mb-3">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-xs font-semibold">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Búsqueda Exhaustiva 24h & Locución</span>
+                </div>
+                {lastSyncTime && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300 text-[11px] sm:text-xs font-mono">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>Actualizado hoy {lastSyncTime}</span>
+                  </div>
+                )}
               </div>
               <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-2">
-                Locución de actualidad y titulares al instante.
+                Lo más relevante de las últimas 24 horas.
               </h2>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Escucha el resumen oficial de cada ámbito o utiliza el <strong>Configurador de Preferencias</strong> para añadir categorías, configurar tu hora de búsqueda y definir hasta <strong>20 etiquetas específicas</strong>.
+                Rastreo continuo de medios oficiales y especializados. Las noticias se priorizan primero según tus <strong>etiquetas configuradas</strong> y se limitan exactamente al número que definas en cada categoría.
               </p>
             </div>
 

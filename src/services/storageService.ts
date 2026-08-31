@@ -219,4 +219,36 @@ export const storageService = {
       console.error('Error saving visible scopes:', e);
     }
   },
+
+  // Caché de búsqueda exhaustiva del día por categoría
+  getDailyBriefingCache(scopeId: string): any | null {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const key = `briefing_ai_cache_24h_${scopeId}_${today}`;
+      const raw = localStorage.getItem(key);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {
+      console.error('Error reading daily briefing cache:', e);
+    }
+    return null;
+  },
+
+  saveDailyBriefingCache(scopeId: string, briefing: any): void {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const key = `briefing_ai_cache_24h_${scopeId}_${today}`;
+      localStorage.setItem(key, JSON.stringify(briefing));
+      localStorage.setItem('briefing_ai_last_sync_timestamp', new Date().toISOString());
+    } catch (e) {
+      console.error('Error saving daily briefing cache:', e);
+    }
+  },
+
+  getLastSyncTimestamp(): string | null {
+    try {
+      return localStorage.getItem('briefing_ai_last_sync_timestamp');
+    } catch {
+      return null;
+    }
+  },
 };

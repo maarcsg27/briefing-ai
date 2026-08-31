@@ -43,6 +43,8 @@ export interface NewsItem {
   isOfficial: boolean;
   matchedTags: string[];
   geographicArea: string;
+  is24h?: boolean;
+  score?: number;
 }
 
 export interface BriefingResult {
@@ -54,4 +56,7 @@ export interface BriefingResult {
   summaryBulletPoints: string[];
   articles: NewsItem[];
   matchedTagsCount: number;
+  totalArticlesAnalyzed?: number;
+  isExhaustive24h?: boolean;
+  lastSearchDate?: string;
 }

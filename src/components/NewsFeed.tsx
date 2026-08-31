@@ -12,12 +12,24 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
     <div className="space-y-6">
       
       {/* 1. SECCIÓN DE RESUMEN EJECUTIVO (Puntos Clave) */}
-      <div className="bg-slate-900/80 rounded-2xl border border-slate-800 p-6 shadow-md">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-4 h-4 text-emerald-400" />
-          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
-            Resumen Ejecutivo del Momento
-          </h3>
+      <div className="bg-slate-900/80 rounded-2xl border border-slate-800 p-5 sm:p-6 shadow-md">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-200">
+              Vistazo Rápido de las Últimas 24 Horas
+            </h3>
+          </div>
+          <div className="flex items-center gap-2">
+            {briefing.totalArticlesAnalyzed && (
+              <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
+                {briefing.totalArticlesAnalyzed} noticias analizadas
+              </span>
+            )}
+            <span className="text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              {briefing.timestamp}
+            </span>
+          </div>
         </div>
 
         <ul className="space-y-2.5">
@@ -32,15 +44,15 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
 
       {/* 2. SECCIÓN DE TITULARES Y FUENTES OFICIALES */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-200">
-              Titulares Oficiales y Fuentes Verificadas ({briefing.articles.length})
+            <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-200">
+              Titulares de las Últimas 24h ({briefing.articles.length} seleccionadas)
             </h3>
           </div>
-          <span className="text-xs text-slate-400">
-            Ordenado por coincidencia de etiquetas
+          <span className="text-[11px] sm:text-xs text-slate-400">
+            Priorizadas por etiquetas configuradas
           </span>
         </div>
 
