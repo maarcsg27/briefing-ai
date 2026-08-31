@@ -54,8 +54,7 @@ export const geminiService = {
     const maxLimit = preferences.maxNewsLimit || 5;
 
     const promptText = `
-Eres el motor principal de inteligencia artificial de la aplicación Briefing AI.
-Tu tarea es investigar las noticias reales más importantes de las últimas 24 horas para la categoría "${scope.name}".
+Actúa como un analista de medios y investiga las noticias reales más importantes de las últimas 24 horas para la categoría "${scope.name}".
 
 DATOS DE CONFIGURACIÓN DEL ÁMBITO:
 - Categoría: ${scope.name}
@@ -65,28 +64,33 @@ DATOS DE CONFIGURACIÓN DEL ÁMBITO:
 - Fuentes preferidas de referencia: ${sourcesStr || 'Medios acreditados globales y nacionales'}
 - Cantidad deseada de noticias: ${maxLimit}
 
-REGLAS DE GENERACIÓN OBLIGATORIAS:
-1. Para cada noticia (debes incluir exactamente entre 3 y ${maxLimit} noticias):
-   - "title": Titular limpio, profesional y directo. NO repitas el nombre del medio en el titular.
-   - "summary": UN PÁRRAFO COMPLETO DE 3 A 5 LÍNEAS (entre 50 y 90 palabras en español) que explique con profundidad la noticia. Debe aportar contexto real, datos, implicaciones y antecedentes. NUNCA comiences el resumen repitiendo el titular.
-   - "source": Nombre de la fuente oficial o medio especializado (ej. "Expansión", "Harvard Business Review", "PubMed").
-   - "sourceDomain": Dominio web limpio (ej. "expansion.com", "hbr.org").
-   - "sourceUrl": Enlace web real o búsqueda directa a la fuente.
-   - "matchedTags": Array con las etiquetas del usuario que coinciden con esta noticia (ej. ["${preferences.tags[0] || 'Actualidad'}"]).
-   - "geographicArea": Zona geográfica (ej. "España", "Global", "Europa").
+INSTRUCCIONES ESTRICTAS PARA CADA RESUMEN:
+1. El resumen ("summary") DEBE tener una extensión estricta de 3 a 5 líneas (entre 50 y 90 palabras).
+2. Sintetiza los hechos principales respondiendo brevemente a: qué ocurrió, quiénes están involucrados y cuál es el impacto o conclusión clave.
+3. Mantén un tono neutral, directo y objetivo, sin introducciones ni comentarios adicionales.
+4. PROHIBIDO usar frases de relleno como "En esta noticia se habla de...", "Esta noticia trata sobre...", "En este artículo se analiza...". Comienza DIRECTAMENTE explicando los hechos y el contenido de la noticia.
 
-2. "audioScript": Un guion fluido en español para ser leído por voz en la app. Saluda ("Buenos días" / "Buenas tardes"), presenta las noticias clave una a una explicando su titular y resumen breve sin redundancias, y despídete profesionalmente.
+ESTRUCTURA DE RESPUESTA PARA CADA NOTICIA (entre 3 y ${maxLimit} noticias):
+- "title": Titular limpio, profesional y directo. NUNCA incluyas el nombre del medio en el titular.
+- "summary": El resumen analítico objetivo de 3 a 5 líneas estructurado según las instrucciones anteriores.
+- "source": Nombre del medio o fuente oficial acreditada.
+- "sourceDomain": Dominio web (ej. "expansion.com", "cop.es", "wired.com").
+- "sourceUrl": URL directa o búsqueda oficial de la fuente.
+- "matchedTags": Etiquetas coincidentes del usuario.
+- "geographicArea": Zona geográfica.
 
-3. "summaryBulletPoints": Array de strings donde cada elemento sea un resumen sintético de 1-2 frases para cada noticia precedido por [#etiqueta]. NO incluyas el titular en el punto del resumen.
+SECCIONES ADICIONALES:
+- "audioScript": Guion fluido de locución por voz en español que analice de forma profesional y directa los titulares y sus resúmenes analíticos.
+- "summaryBulletPoints": Puntos clave con formato [#Etiqueta] Explicación directa del hecho principal e impacto.
 
 FORMATO DE RESPUESTA REQUERIDO:
-Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato markdown alrededor ni texto extra:
+Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato markdown ni explicaciones adicionales:
 {
   "articles": [
     {
       "id": "ai-1",
-      "title": "Titular de la noticia",
-      "summary": "Párrafo de 3 a 5 líneas completas explicando los detalles...",
+      "title": "Titular limpio y directo",
+      "summary": "Explicación analítica directa de 3 a 5 líneas con hechos principales, involucrados e impacto clave...",
       "contentSnippet": "Extracto explicativo de soporte.",
       "source": "Nombre Fuente",
       "sourceDomain": "dominio.com",
@@ -99,7 +103,7 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato 
   ],
   "audioScript": "Guion fluido para la locución por voz...",
   "summaryBulletPoints": [
-    "[#Tag1] Resumen sintético explicativo..."
+    "[#Tag1] Hecho principal e impacto clave..."
   ]
 }
 `;

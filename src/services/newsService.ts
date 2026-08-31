@@ -386,6 +386,9 @@ function extractCleanSummary(title: string, rawSnippet: string, query: string, s
   // Limpiar signos de puntuación o guiones sobrantes al principio
   clean = clean.replace(/^[-–:;\s\.\"]+/g, '').trim();
 
+  // Eliminar prefijos metatextuales no deseados tipo "En esta noticia se habla de..."
+  clean = clean.replace(/^(en esta noticia (se habla de|se aborda|se trata|trata sobre)|esta noticia trata sobre|en este artículo (se analiza|se detalla|se expone)|en esta información se detalla|en este informe (se explica|se analiza))\s*:?\s*/gi, '').trim();
+
   // Capitalizar la primera letra
   if (clean.length > 0) {
     clean = clean.charAt(0).toUpperCase() + clean.slice(1);
