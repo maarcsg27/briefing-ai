@@ -13,7 +13,8 @@ import {
   CheckSquare,
   Square,
   Eye,
-  EyeOff
+  EyeOff,
+  Newspaper
 } from 'lucide-react';
 import type { ScopeDefinition, ScopePreferences } from '../types';
 
@@ -67,6 +68,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryDescription, setNewCategoryDescription] = useState('');
   const [newCategoryTime, setNewCategoryTime] = useState('09:00');
+  const [newCategoryMaxNews, setNewCategoryMaxNews] = useState<number>(5);
   const [newCategoryTags, setNewCategoryTags] = useState<string[]>([]);
   const [createTagInput, setCreateTagInput] = useState('');
   const [createError, setCreateError] = useState('');
@@ -205,6 +207,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
         country: 'Global',
         city: '',
         preferredTime: newCategoryTime || '09:00',
+        maxNewsLimit: Number(newCategoryMaxNews) || 5,
         tags: newCategoryTags.slice(0, 20),
         sources: [
           {
@@ -533,6 +536,56 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                   </div>
                 </div>
 
+                {/* Apartado: Límite de Noticias de la Categoría */}
+                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Newspaper className="w-4 h-4 text-emerald-400" />
+                      <label className="text-xs font-semibold text-slate-200">
+                        Límite de noticias de la categoría
+                      </label>
+                    </div>
+                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      {editPreferences.maxNewsLimit || 5} noticias
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Establece el número máximo de artículos oficiales y titulares que se recopilarán en cada actualización de este ámbito.
+                  </p>
+                  <div className="flex items-center gap-3 pt-1">
+                    <input
+                      type="range"
+                      min="1"
+                      max="15"
+                      step="1"
+                      value={editPreferences.maxNewsLimit || 5}
+                      onChange={(e) =>
+                        setEditPreferences({
+                          ...editPreferences,
+                          maxNewsLimit: Number(e.target.value),
+                        })
+                      }
+                      className="flex-1 accent-emerald-500 cursor-pointer h-2 bg-slate-700 rounded-lg"
+                    />
+                    <select
+                      value={editPreferences.maxNewsLimit || 5}
+                      onChange={(e) =>
+                        setEditPreferences({
+                          ...editPreferences,
+                          maxNewsLimit: Number(e.target.value),
+                        })
+                      }
+                      className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                    >
+                      {[2, 3, 4, 5, 6, 8, 10, 12, 15].map((num) => (
+                        <option key={num} value={num}>
+                          {num} noticias
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 {/* Etiquetas Específicas (Límite 20) */}
                 <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
@@ -666,18 +719,38 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
               />
             </div>
 
-            {/* Hora de Búsqueda Completa */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-amber-400" />
-                <span>Hora a la que quieres que la búsqueda esté hecha</span>
-              </label>
-              <input
-                type="time"
-                value={newCategoryTime}
-                onChange={(e) => setNewCategoryTime(e.target.value)}
-                className="w-full sm:w-48 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
-              />
+            {/* Hora de Búsqueda Completa y Límite de Noticias */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Hora de búsqueda completa</span>
+                </label>
+                <input
+                  type="time"
+                  value={newCategoryTime}
+                  onChange={(e) => setNewCategoryTime(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                  <Newspaper className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Límite de noticias a mostrar</span>
+                </label>
+                <select
+                  value={newCategoryMaxNews}
+                  onChange={(e) => setNewCategoryMaxNews(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
+                >
+                  {[2, 3, 4, 5, 6, 8, 10, 12, 15].map((num) => (
+                    <option key={num} value={num}>
+                      {num} noticias máximo
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Añadir Etiquetas Iniciales (Límite 20) */}

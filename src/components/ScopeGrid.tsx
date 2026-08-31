@@ -98,16 +98,21 @@ export const ScopeGrid: React.FC<ScopeGridProps> = ({
               {/* Indicadores de configuración activa */}
               <div className="space-y-2 pt-2 border-t border-slate-800/80">
                 
-                {/* Ámbito Geográfico y Hora */}
+                {/* Ámbito Geográfico, Hora y Límite de Noticias */}
                 <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <Globe className="w-3 h-3 text-blue-400" />
-                    <span className="capitalize">{prefs.geographicScope} ({prefs.country})</span>
+                  <span className="flex items-center gap-1 truncate max-w-[120px]">
+                    <Globe className="w-3 h-3 text-blue-400 shrink-0" />
+                    <span className="capitalize truncate">{prefs.geographicScope}</span>
                   </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-amber-400" />
-                    <span>{prefs.preferredTime} h</span>
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-amber-400 shrink-0" />
+                      <span>{prefs.preferredTime}h</span>
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded bg-slate-800 border border-slate-700 text-[10px] text-slate-300 font-mono" title="Límite de noticias">
+                      {prefs.maxNewsLimit || 5} notic.
+                    </span>
+                  </div>
                 </div>
 
                 {/* Tags personalizadas activas */}

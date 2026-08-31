@@ -261,7 +261,8 @@ export const newsService = {
     scoredArticles.sort((a, b) => b.score - a.score);
 
     const matchedArticles = scoredArticles.filter((a) => a.matchedTags.length > 0);
-    const selectedArticles = scoredArticles.slice(0, 4);
+    const limit = preferences.maxNewsLimit && preferences.maxNewsLimit > 0 ? preferences.maxNewsLimit : 5;
+    const selectedArticles = scoredArticles.slice(0, limit);
 
     // 3. Generar el Guion de Locución para la Voz
     let audioScript = '';

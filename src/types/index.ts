@@ -15,6 +15,7 @@ export interface ScopePreferences {
   country: string;
   city: string;
   preferredTime: string; // ej: "08:30"
+  maxNewsLimit?: number; // Límite de noticias a mostrar (ej. 3, 5, 10)
   tags: string[]; // Etiquetas prioritarias: ej. ["Real Madrid", "Mbappé"]
   sources: ScopeSource[];
 }
