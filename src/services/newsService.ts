@@ -388,37 +388,86 @@ export const newsService = {
 
     // 4. APLICAR EL LÍMITE DE NOTICIAS DE LA CATEGORÍA
     const maxLimit = preferences.maxNewsLimit && preferences.maxNewsLimit > 0 ? preferences.maxNewsLimit : 5;
-    const finalArticles = scoredArticles.slice(0, maxLimit);
+    const selectedBatch = scoredArticles.slice(0, maxLimit);
+
+    // ANALIZAR NOTICIA POR NOTICIA Y EXTRAER RESUMEN DE LO MÁS IMPORTANTE
+    const finalArticles: NewsItem[] = selectedBatch.map((art) => {
+      // Extraer y enriquecer el resumen de lo que se cuenta en la noticia
+      let summaryText = art.summary || '';
+      const snippet = art.contentSnippet || '';
+
+      // Si el resumen es muy corto o genérico, sintetizar a partir del titular y snippet
+      if (summaryText.length < 50 && snippet.length > 50) {
+        summaryText = snippet;
+      }
+
+      // Extraer 2 puntos clave específicos analizando el texto
+      const sentences = `${summaryText}. ${snippet}`
+        .split(/[.!?]\s+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 25 && !s.toLowerCase().includes('leer más') && !s.toLowerCase().includes('suscríbete'));
+
+      const keyHighlights: string[] = [];
+      if (sentences.length >= 1) {
+        keyHighlights.push(sentences[0]);
+      }
+      if (sentences.length >= 2 && sentences[1] !== sentences[0]) {
+        keyHighlights.push(sentences[1]);
+      }
+      if (keyHighlights.length === 0) {
+        keyHighlights.push(`Cobertura oficial de ${art.source} sobre los hechos recientes.`);
+      }
+
+      return {
+        ...art,
+        summary: summaryText.length > 260 ? summaryText.substring(0, 257) + '...' : summaryText,
+        keyHighlights,
+      };
+    });
+
     const matchedArticles = finalArticles.filter((a) => a.matchedTags.length > 0);
 
-    if (onProgress) onProgress(`Seleccionadas las ${finalArticles.length} noticias más relevantes de las últimas 24h.`);
+    if (onProgress) onProgress(`Analizadas y resumidas las ${finalArticles.length} noticias seleccionadas.`);
 
-    // 5. GENERAR EL GUION DE LOCUCIÓN PARA EL RESUMEN RÁPIDO AL ENTRAR
+    // 5. GENERAR EL GUION DE LOCUCIÓN POR AUDIO MÁS EXTENSO Y DETALLADO
+    // Repasa varios titulares uno a uno explicando el resumen de lo que se cuenta
     const now = new Date();
     const saludo = now.getHours() < 13 ? 'Buenos días' : now.getHours() < 20 ? 'Buenas tardes' : 'Buenas noches';
     const horaActual = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-    let audioScript = '';
-    const topArticle = finalArticles[0];
-    const secondArticle = finalArticles[1];
-
+    let audioScript = `${saludo}. Iniciamos el repaso informativo completo de ${scopeName} correspondiente a las últimas 24 horas, emitido a las ${horaActual}. `;
+    
     if (matchedArticles.length > 0) {
-      const distinctTags = Array.from(new Set(matchedArticles.flatMap((m) => m.matchedTags))).slice(0, 3).join(', ');
-      audioScript = `${saludo}. Aquí tienes tu actualización de ${scopeName} de las últimas 24 horas a las ${horaActual}, priorizada según tus etiquetas de seguimiento: ${distinctTags}. ` +
-        (topArticle ? `Titular principal según ${topArticle.source}: ${topArticle.title}. ${topArticle.summary} ` : '') +
-        (secondArticle ? `Asimismo, ${secondArticle.source} destaca: ${secondArticle.title}. ` : '') +
-        `Tienes a continuación el desglose de las ${finalArticles.length} noticias seleccionadas con enlace a cada fuente oficial.`;
+      const distinctTags = Array.from(new Set(matchedArticles.flatMap((m) => m.matchedTags))).slice(0, 4).join(', ');
+      audioScript += `Hemos priorizado en cabecera las informaciones vinculadas a tus temas de seguimiento: ${distinctTags}. `;
     } else {
-      audioScript = `${saludo}. Aquí tienes el repaso de las noticias más destacadas de las últimas 24 horas en ${scopeName} a las ${horaActual}. ` +
-        (topArticle ? `Abriendo la jornada, según ${topArticle.source}: ${topArticle.title}. ${topArticle.summary} ` : '') +
-        (secondArticle ? `Por su parte, ${secondArticle.source} reporta que ${secondArticle.title}. ` : '') +
-        `Revisa el listado inferior para acceder directamente a las fuentes oficiales de cada noticia.`;
+      audioScript += `A continuación analizamos los principales acontecimientos del sector recopilados en medios y fuentes oficiales. `;
     }
 
-    // 6. GENERAR PUNTOS CLAVE DE RESUMEN EJECUTIVO
+    // Repasar noticia por noticia de forma extensa (hasta 4 noticias en profundidad)
+    finalArticles.slice(0, 4).forEach((art, index) => {
+      const ordinal = index === 0 ? 'En primer lugar' : index === 1 ? 'Seguidamente' : index === 2 ? 'En tercer lugar' : 'Para finalizar este bloque';
+      const tagMention = art.matchedTags && art.matchedTags.length > 0 ? ` sobre ${art.matchedTags.join(' y ')}` : '';
+      
+      audioScript += `${ordinal}, según reporta ${art.source}${tagMention}: "${art.title}". `;
+      if (art.summary) {
+        audioScript += `${art.summary} `;
+      }
+      if (art.keyHighlights && art.keyHighlights.length > 1) {
+        audioScript += `Como punto destacado: ${art.keyHighlights[1]} `;
+      }
+    });
+
+    if (finalArticles.length > 4) {
+      audioScript += `Además de estos temas, dispones de ${finalArticles.length - 4} noticias adicionales preparadas en la pantalla con sus titulares y fuentes oficiales directas. `;
+    }
+
+    audioScript += `Este ha sido tu resumen de actualidad para ${scopeName}. Tienes todos los enlaces oficiales disponibles para profundizar en cada información.`;
+
+    // 6. GENERAR PUNTOS CLAVE DE RESUMEN EJECUTIVO (Titular + Resumen claro)
     const summaryBulletPoints = finalArticles.map((art) => {
       const tagPrefix = art.matchedTags.length > 0 ? `[#${art.matchedTags.join(', #')}] ` : '';
-      return `${tagPrefix}${art.title} — ${art.summary}`;
+      return `${tagPrefix}${art.title}: ${art.summary}`;
     });
 
     return {

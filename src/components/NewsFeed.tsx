@@ -89,19 +89,41 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
                     </span>
                   </div>
 
-                  {/* Titular */}
-                  <h4 className="text-base font-bold text-white mb-2 leading-snug">
-                    {article.title}
-                  </h4>
+                  {/* Titular de la Noticia */}
+                  <div className="mb-2">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 block mb-0.5">
+                      Titular:
+                    </span>
+                    <h4 className="text-base sm:text-lg font-bold text-white leading-snug">
+                      {article.title}
+                    </h4>
+                  </div>
 
-                  {/* Extracto */}
-                  <p className="text-xs text-slate-300 leading-relaxed mb-3">
-                    {article.contentSnippet}
-                  </p>
+                  {/* Resumen de lo más importante que se cuenta en la noticia */}
+                  <div className="mb-3.5 bg-slate-950/50 p-3 rounded-xl border border-slate-800/90">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
+                      Resumen de la noticia:
+                    </span>
+                    <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                      {article.summary || article.contentSnippet}
+                    </p>
+
+                    {/* Puntos clave destacados si existen */}
+                    {article.keyHighlights && article.keyHighlights.length > 0 && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-800/80 space-y-1">
+                        {article.keyHighlights.map((point, pIdx) => (
+                          <div key={pIdx} className="flex items-start gap-2 text-xs text-slate-300">
+                            <span className="text-emerald-400 font-bold">•</span>
+                            <span>{point}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Etiquetas coincidentes */}
                   {hasMatchedTags && (
-                    <div className="flex items-center gap-1.5 flex-wrap mb-4">
+                    <div className="flex items-center gap-1.5 flex-wrap mb-3.5">
                       <span className="text-[11px] text-emerald-400 flex items-center gap-1">
                         <Tag className="w-3 h-3" /> Coincide con:
                       </span>

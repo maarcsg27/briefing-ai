@@ -36,6 +36,7 @@ export interface NewsItem {
   title: string;
   summary: string;
   contentSnippet: string;
+  keyHighlights?: string[]; // Puntos clave específicos extraídos de la noticia
   source: string;
   sourceDomain: string;
   sourceUrl: string;
