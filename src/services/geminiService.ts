@@ -54,7 +54,7 @@ export const geminiService = {
     const maxLimit = preferences.maxNewsLimit || 5;
 
     const promptText = `
-Actúa como un analista de medios y investiga las noticias reales publicadas estrictamente en las ÚLTIMAS 24 HORAS para la categoría "${scope.name}".
+Actúa como un analista de medios y investiga las noticias reales publicadas estrictamente en las ÚLTIMAS 24 HORAS (desde la hora actual hacia 24 horas atrás) para la categoría "${scope.name}".
 
 DATOS DE CONFIGURACIÓN DEL ÁMBITO:
 - Categoría: ${scope.name}
@@ -63,23 +63,26 @@ DATOS DE CONFIGURACIÓN DEL ÁMBITO:
 - Ámbito geográfico: ${preferences.geographicScope} (${preferences.country || 'Global'})
 - Cantidad deseada de noticias: ${maxLimit}
 
-RESTRICCIÓN OBLIGATORIA DE FUENTES Y TIEMPO (ÚLTIMAS 24 HORAS):
+RESTRICCIÓN OBLIGATORIA DE FUENTES Y TIEMPO (ÚLTIMAS 24 HORAS HASTA LA HORA ACTUAL):
 1. ÚNICAMENTE debes buscar e incluir noticias reales publicadas en las ÚLTIMAS 24 HORAS.
-2. TODAS las noticias DEBEN PROVENIR EXCLUSIVAMENTE de una de las siguientes fuentes vinculadas en la biblioteca del usuario:
+2. TODAS las noticias DEBEN PROVENIR EXCLUSIVAMENTE de una de las siguientes fuentes guardadas en la biblioteca del usuario:
 ${sourcesStr || '- Medios acreditados del sector'}
 
-3. Queda PROHIBIDO utilizar fuentes o dominios web que no pertenezcan a la lista de la biblioteca arriba especificada.
+3. Queda totalmente PROHIBIDO utilizar o devolver noticias de fuentes o dominios web ajenos a la lista de la biblioteca arriba especificada.
 4. Para cada noticia, el campo "sourceDomain" DEBE ser el dominio exacto de la fuente de la biblioteca (ej. "${enabledSourcesList[0]?.domain || 'cop.es'}").
 
-INSTRUCCIONES ESTRICTAS PARA CADA RESUMEN:
+INSTRUCCIONES ESTRICTAS DE RESUMEN ANALÍTICO BASADO EN EL CONTENIDO:
 1. El resumen ("summary") DEBE tener una extensión estricta de 3 a 5 líneas (entre 50 y 90 palabras).
-2. Sintetiza los hechos principales respondiendo brevemente a: qué ocurrió, quiénes están involucrados y cuál es el impacto o conclusión clave.
-3. Mantén un tono neutral, directo y objetivo, sin introducciones ni comentarios adicionales.
-4. PROHIBIDO usar frases de relleno como "En esta noticia se habla de...", "Esta noticia trata sobre...", "En este artículo se analiza...". Comienza DIRECTAMENTE explicando los hechos y el contenido de la noticia.
+2. El resumen DEBE EXPLICAR EL CONTENIDO REAL DE LA NOTICIA. Sintetiza los hechos principales respondiendo a:
+   - QUÉ OCURRIÓ (los hechos concretos y datos reales reportados en la noticia).
+   - QUIÉNES ESTÁN INVOLUCRADOS (organismos, entidades, empresas o personas involucradas).
+   - CUÁL ES EL IMPACTO O CONCLUSIÓN CLAVE.
+3. Mantén un tono neutral, directo y objetivo.
+4. PROHIBIDO GENERAR RESÚMENES GENÉRICOS O USAR FRASES META como "En esta noticia se habla de...", "Esta noticia trata sobre...", "En este artículo se analiza...". Comienza DIRECTAMENTE explicando los hechos y el contenido de la noticia.
 
 ESTRUCTURA DE RESPUESTA PARA CADA NOTICIA (entre 3 y ${maxLimit} noticias de las fuentes de la biblioteca):
 - "title": Titular limpio, profesional y directo. NUNCA incluyas el nombre del medio en el titular.
-- "summary": El resumen analítico objetivo de 3 a 5 líneas estructurado según las instrucciones anteriores.
+- "summary": Explicación analítica objetiva de 3 a 5 líneas que desglose el contenido real de la noticia.
 - "source": Nombre exacto de la fuente de la biblioteca.
 - "sourceDomain": Dominio exacto de la fuente de la biblioteca (ej. "cop.es", "cnmv.es", "xataka.com").
 - "sourceUrl": URL oficial directa de la noticia en la fuente.
@@ -87,8 +90,8 @@ ESTRUCTURA DE RESPUESTA PARA CADA NOTICIA (entre 3 y ${maxLimit} noticias de las
 - "geographicArea": Zona geográfica.
 
 SECCIONES ADICIONALES:
-- "audioScript": Guion fluido de locución por voz en español que analice de forma profesional y directa los titulares y sus resúmenes analíticos de las últimas 24h.
-- "summaryBulletPoints": Puntos clave con formato [#Etiqueta] Explicación directa del hecho principal e impacto.
+- "audioScript": Guion fluido de locución por voz en español que analice de forma profesional y directa el contenido real de los titulares y sus resúmenes de las últimas 24h.
+- "summaryBulletPoints": Puntos clave con formato [#Etiqueta] Explicación directa del hecho principal e impacto real.
 
 FORMATO DE RESPUESTA REQUERIDO:
 Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato markdown ni explicaciones adicionales:

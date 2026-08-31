@@ -519,14 +519,16 @@ export const newsService = {
 
     if (onProgress) onProgress('Iniciando rastreo exhaustivo en páginas oficiales (últimas 24h)...');
 
-    // 1. Preparar consultas paralelas:
-    const queriesToRun: string[] = [scopeName];
+    // 1. Preparar consultas paralelas dirigidas a las fuentes habilitadas de la biblioteca del usuario:
+    const enabledSources = (preferences.sources || []).filter((s) => s.enabled);
+    const queriesToRun: string[] = [];
 
-    if (preferences.tags && preferences.tags.length > 0) {
-      const mainTags = preferences.tags.slice(0, 4);
-      mainTags.forEach((tag) => {
-        queriesToRun.push(`${scopeName} ${tag}`);
+    if (enabledSources.length > 0) {
+      enabledSources.slice(0, 8).forEach((src) => {
+        queriesToRun.push(`${scopeName} site:${src.domain}`);
       });
+    } else {
+      queriesToRun.push(scopeName);
     }
 
     if (onProgress) onProgress(`Consultando ${queriesToRun.length} fuentes y canales de noticias de las últimas 24h...`);
@@ -562,7 +564,6 @@ export const newsService = {
     }
 
     // 2. Filtrar estrictamente por las fuentes habilitadas en la biblioteca del usuario
-    const enabledSources = (preferences.sources || []).filter((s) => s.enabled);
     if (enabledSources.length > 0) {
       const enabledDomains = enabledSources.map((s) => s.domain.toLowerCase().replace(/^www\./, ''));
       const libraryFiltered = rawArticles.filter((art) => {
