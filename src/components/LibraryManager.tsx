@@ -13,7 +13,9 @@ import {
   RefreshCw,
   Search,
   BookOpen,
-  Info
+  Info,
+  ShieldAlert,
+  X
 } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
 import { storageService } from '../services/storageService';
@@ -44,6 +46,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   // Estados para palabras clave y subtemáticas
   const [newTag, setNewTag] = useState('');
   const [newSubcategory, setNewSubcategory] = useState('');
+  const [newBannedKeyword, setNewBannedKeyword] = useState('');
 
   // Estados para descubrimiento de fuentes por IA
   const [isDiscovering, setIsDiscovering] = useState(false);
@@ -101,6 +104,30 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
     const updated: ScopePreferences = {
       ...activePrefs,
       subcategories: existingSubs.filter((s) => s !== subToRemove),
+    };
+    onUpdatePreferences(selectedScopeId, updated);
+  };
+
+  const handleAddBannedKeyword = (e: React.FormEvent) => {
+    e.preventDefault();
+    const kw = newBannedKeyword.trim().toLowerCase();
+    if (!kw) return;
+    const currentBanned = activePrefs.bannedKeywords || [];
+    if (!currentBanned.includes(kw)) {
+      const updated: ScopePreferences = {
+        ...activePrefs,
+        bannedKeywords: [...currentBanned, kw],
+      };
+      onUpdatePreferences(selectedScopeId, updated);
+      setNewBannedKeyword('');
+    }
+  };
+
+  const handleRemoveBannedKeyword = (kwToRemove: string) => {
+    const currentBanned = activePrefs.bannedKeywords || [];
+    const updated: ScopePreferences = {
+      ...activePrefs,
+      bannedKeywords: currentBanned.filter((k) => k !== kwToRemove),
     };
     onUpdatePreferences(selectedScopeId, updated);
   };
@@ -416,6 +443,62 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                         className="text-slate-500 hover:text-rose-400 transition"
                       >
                         <Trash2 className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* SECCIÓN PALABRAS BETADAS / EXCLUIDAS */}
+            <div className="pt-3 border-t border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Palabras Betadas / Excluidas</span>
+                </label>
+                <span className="text-[11px] text-rose-400 font-mono font-bold">
+                  {(activePrefs.bannedKeywords || []).length} betadas
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-400">
+                Añade términos que <strong>NO quieres que salgan nunca</strong> (ej. <em>apuestas deportivas, bet, casino</em>).
+              </p>
+
+              <form onSubmit={handleAddBannedKeyword} className="flex gap-2">
+                <input
+                  type="text"
+                  value={newBannedKeyword}
+                  onChange={(e) => setNewBannedKeyword(e.target.value)}
+                  placeholder="Añadir palabra a vetar (ej. apuestas deportivas, bet)..."
+                  className="flex-1 bg-slate-950 border border-rose-900/60 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                />
+                <button
+                  type="submit"
+                  className="bg-rose-700 hover:bg-rose-600 text-white rounded-xl px-4 py-2 text-xs font-bold transition flex items-center gap-1 shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Betar</span>
+                </button>
+              </form>
+
+              <div className="flex flex-wrap gap-2">
+                {(!activePrefs.bannedKeywords || activePrefs.bannedKeywords.length === 0) ? (
+                  <p className="text-xs text-slate-500 italic">No hay palabras betadas configuradas aún.</p>
+                ) : (
+                  activePrefs.bannedKeywords.map((kw) => (
+                    <span
+                      key={kw}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950/80 border border-rose-500/50 text-rose-300 text-xs font-medium"
+                    >
+                      <span>🚫 {kw}</span>
+                      <button
+                        onClick={() => handleRemoveBannedKeyword(kw)}
+                        className="text-rose-400 hover:text-white transition"
+                        title="Eliminar palabra betada"
+                      >
+                        <X className="w-3 h-3" />
                       </button>
                     </span>
                   ))

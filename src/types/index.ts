@@ -43,6 +43,7 @@ export interface ScopePreferences {
   maxNewsLimit?: number; // Límite de noticias a mostrar (ej. 3, 5, 10)
   tags: string[]; // Etiquetas prioritarias: ej. ["Real Madrid", "Mbappé"]
   subcategories?: string[]; // Subtemáticas asociadas al ámbito
+  bannedKeywords?: string[]; // Palabras betadas/excluidas: ej. ["apuestas deportivas", "bet", "casino"]
   sources: ScopeSource[];
 }
 

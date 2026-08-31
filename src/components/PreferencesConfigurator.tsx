@@ -14,7 +14,8 @@ import {
   Square,
   Eye,
   EyeOff,
-  Newspaper
+  Newspaper,
+  ShieldAlert
 } from 'lucide-react';
 import type { ScopeDefinition, ScopePreferences } from '../types';
 
@@ -62,6 +63,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
     currentScope ? currentScope.description : ''
   );
   const [newTagInput, setNewTagInput] = useState('');
+  const [bannedTagInput, setBannedTagInput] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Estado del formulario de crear nueva categoría
@@ -139,6 +141,28 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
     setEditPreferences({
       ...editPreferences,
       tags: editPreferences.tags.filter((t) => t !== tagToRemove),
+    });
+  };
+
+  const handleAddBannedTagToEdit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const kw = bannedTagInput.trim().toLowerCase();
+    if (!kw) return;
+    const currentBanned = editPreferences.bannedKeywords || [];
+    if (!currentBanned.includes(kw)) {
+      setEditPreferences({
+        ...editPreferences,
+        bannedKeywords: [...currentBanned, kw],
+      });
+      setBannedTagInput('');
+    }
+  };
+
+  const handleRemoveBannedTagFromEdit = (kwToRemove: string) => {
+    const currentBanned = editPreferences.bannedKeywords || [];
+    setEditPreferences({
+      ...editPreferences,
+      bannedKeywords: currentBanned.filter((k) => k !== kwToRemove),
     });
   };
 
@@ -537,7 +561,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                 </div>
 
                 {/* Apartado: Límite de Noticias de la Categoría */}
-                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-800 space-y-2">
+                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Newspaper className="w-4 h-4 text-emerald-400" />
@@ -545,18 +569,47 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                         Límite de noticias de la categoría
                       </label>
                     </div>
-                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       {editPreferences.maxNewsLimit || 5} noticias
                     </span>
                   </div>
+
                   <p className="text-[11px] text-slate-400">
-                    Establece el número máximo de artículos oficiales y titulares que se recopilarán en cada actualización de este ámbito.
+                    Establece el número exacto de noticias y artículos oficiales que se recopilarán en esta categoría.
                   </p>
-                  <div className="flex items-center gap-3 pt-1">
+
+                  {/* Botones de Selección Rápida Ordenados */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {[2, 3, 5, 8, 10, 12, 15, 20].map((num) => {
+                      const isSelected = (editPreferences.maxNewsLimit || 5) === num;
+                      return (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() =>
+                            setEditPreferences({
+                              ...editPreferences,
+                              maxNewsLimit: num,
+                            })
+                          }
+                          className={`px-3 py-1 rounded-lg text-xs font-mono font-bold border transition ${
+                            isSelected
+                              ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/20'
+                              : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-600'
+                          }`}
+                        >
+                          {num} noticias
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Barra deslizante limpia con valores mínimo y máximo */}
+                  <div className="space-y-1 pt-1">
                     <input
                       type="range"
                       min="1"
-                      max="15"
+                      max="20"
                       step="1"
                       value={editPreferences.maxNewsLimit || 5}
                       onChange={(e) =>
@@ -565,24 +618,15 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                           maxNewsLimit: Number(e.target.value),
                         })
                       }
-                      className="flex-1 accent-emerald-500 cursor-pointer h-2 bg-slate-700 rounded-lg"
+                      className="w-full accent-emerald-500 cursor-pointer h-2 bg-slate-700 rounded-lg"
                     />
-                    <select
-                      value={editPreferences.maxNewsLimit || 5}
-                      onChange={(e) =>
-                        setEditPreferences({
-                          ...editPreferences,
-                          maxNewsLimit: Number(e.target.value),
-                        })
-                      }
-                      className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono"
-                    >
-                      {[2, 3, 4, 5, 6, 8, 10, 12, 15].map((num) => (
-                        <option key={num} value={num}>
-                          {num} noticias
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                      <span>1 noticia</span>
+                      <span>5</span>
+                      <span>10</span>
+                      <span>15</span>
+                      <span>20 noticias</span>
+                    </div>
                   </div>
                 </div>
 
@@ -627,7 +671,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                       type="button"
                       onClick={() => handleAddTagToEdit()}
                       disabled={editPreferences.tags.length >= 20}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1"
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shrink-0"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Añadir</span>
@@ -654,6 +698,69 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                             title="Eliminar etiqueta"
                           >
                             <Trash2 className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* APARTADO: PALABRAS BETADAS / EXCLUIDAS */}
+                <div className="bg-rose-950/20 p-4 rounded-xl border border-rose-900/40 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShieldAlert className="w-4 h-4 text-rose-400" />
+                      <label className="text-xs font-bold text-rose-200 uppercase tracking-wider">
+                        Palabras Betadas / Excluidas
+                      </label>
+                    </div>
+                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      {(editPreferences.bannedKeywords || []).length} betadas
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    Añade palabras o temas que <strong>NO quieres que salgan nunca</strong>. Cualquier noticia que contenga estos términos (ej. <em>apuestas deportivas, bet, casino, póquer</em>) será bloqueada automáticamente.
+                  </p>
+
+                  <form onSubmit={handleAddBannedTagToEdit} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={bannedTagInput}
+                      onChange={(e) => setBannedTagInput(e.target.value)}
+                      placeholder="Añadir palabra o frase a betar (ej. apuestas deportivas)..."
+                      className="flex-1 bg-slate-900 border border-rose-900/60 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddBannedTagToEdit()}
+                      className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Betar</span>
+                    </button>
+                  </form>
+
+                  {/* Chips de Palabras Betadas */}
+                  <div className="flex flex-wrap gap-2 pt-1 max-h-36 overflow-y-auto">
+                    {(!editPreferences.bannedKeywords || editPreferences.bannedKeywords.length === 0) ? (
+                      <span className="text-xs text-slate-500 italic">
+                        No hay palabras betadas configuradas.
+                      </span>
+                    ) : (
+                      editPreferences.bannedKeywords.map((kw) => (
+                        <span
+                          key={kw}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950 border border-rose-500/50 text-rose-300 text-xs font-medium shadow-sm"
+                        >
+                          <span>🚫 {kw}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveBannedTagFromEdit(kw)}
+                            className="hover:text-white transition text-rose-400 ml-1"
+                            title="Eliminar palabra betada"
+                          >
+                            <X className="w-3 h-3" />
                           </button>
                         </span>
                       ))
