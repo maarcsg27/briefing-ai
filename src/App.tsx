@@ -11,21 +11,26 @@ import { Sparkles, ArrowDown, Sliders, PlusCircle } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [scopes, setScopes] = useState<ScopeDefinition[]>([]);
+  const [visibleScopeIds, setVisibleScopeIds] = useState<string[]>([]);
   const [preferencesMap, setPreferencesMap] = useState<Record<string, ScopePreferences>>({});
   const [activeScope, setActiveScope] = useState<ScopeDefinition | null>(null);
   
   // Estado del Configurador de Preferencias
   const [isConfiguratorOpen, setIsConfiguratorOpen] = useState<boolean>(false);
   const [configuratorSelectedId, setConfiguratorSelectedId] = useState<string | null>(null);
+  const [configuratorInitialTab, setConfiguratorInitialTab] = useState<'selector' | 'edit' | 'create'>('selector');
 
   const [currentBriefing, setCurrentBriefing] = useState<BriefingResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState<string>('');
 
-  // Cargar catálogo de categorías y sus preferencias
+  // Cargar catálogo de categorías, sus preferencias y cuáles son visibles en la web
   useEffect(() => {
     const loadedScopes = storageService.getAllScopes();
     setScopes(loadedScopes);
+
+    const loadedVisibleIds = storageService.getVisibleScopeIds();
+    setVisibleScopeIds(loadedVisibleIds);
 
     const loadedPrefs: Record<string, ScopePreferences> = {};
     loadedScopes.forEach((s) => {
@@ -33,8 +38,8 @@ export const App: React.FC = () => {
     });
     setPreferencesMap(loadedPrefs);
 
-    // Activar por defecto el primer ámbito (Fútbol o el primero disponible)
-    const initial = loadedScopes[0];
+    // Activar por defecto la primera categoría visible
+    const initial = loadedScopes.find((s) => loadedVisibleIds.includes(s.id)) || loadedScopes[0];
     if (initial) {
       handleGenerateBriefing(initial, loadedPrefs[initial.id] || initial.defaultPreferences, false);
     }
@@ -64,14 +69,30 @@ export const App: React.FC = () => {
     }
   };
 
-  // Abrir el configurador centrado en una categoría específica o general
-  const handleOpenConfigurator = (scope?: ScopeDefinition) => {
+  // Abrir el configurador centrado en una categoría específica o en una pestaña específica
+  const handleOpenConfigurator = (scope?: ScopeDefinition, tab: 'selector' | 'edit' | 'create' = 'selector') => {
     if (scope) {
       setConfiguratorSelectedId(scope.id);
-    } else if (scopes.length > 0) {
-      setConfiguratorSelectedId(scopes[0].id);
+      setConfiguratorInitialTab('edit');
+    } else {
+      if (scopes.length > 0) setConfiguratorSelectedId(scopes[0].id);
+      setConfiguratorInitialTab(tab);
     }
     setIsConfiguratorOpen(true);
+  };
+
+  // Guardar qué categorías son visibles en toda la web
+  const handleSaveVisibleScopeIds = (newVisibleIds: string[]) => {
+    storageService.saveVisibleScopeIds(newVisibleIds);
+    setVisibleScopeIds(newVisibleIds);
+
+    // Si el ámbito activo se ocultó, cambiar al primer visible disponible
+    if (activeScope && !newVisibleIds.includes(activeScope.id)) {
+      const nextScope = scopes.find((s) => newVisibleIds.includes(s.id));
+      if (nextScope) {
+        handleGenerateBriefing(nextScope, preferencesMap[nextScope.id], false);
+      }
+    }
   };
 
   // Guardar preferencias y descripción de categoría
@@ -195,22 +216,32 @@ export const App: React.FC = () => {
         {/* Sección de Categorías y Botones de Ámbito */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
-              Categorías de Noticias Disponibles:
-            </h3>
-            <span className="text-xs text-slate-400">
-              {scopes.length} categorías activas
-            </span>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
+                Tus Categorías Activas en la Web:
+              </h3>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-semibold">
+                {scopes.filter((s) => visibleScopeIds.includes(s.id)).length} de {scopes.length}
+              </span>
+            </div>
+
+            <button
+              onClick={() => handleOpenConfigurator(undefined, 'selector')}
+              className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold transition"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Personalizar qué categorías mostrar</span>
+            </button>
           </div>
 
           <ScopeGrid
-            scopes={scopes}
+            scopes={scopes.filter((s) => visibleScopeIds.includes(s.id))}
             preferencesMap={preferencesMap}
             activeScopeId={activeScope?.id || null}
             isLoading={isLoading}
             onSelectScope={(scope) => handleGenerateBriefing(scope, undefined, true)}
-            onOpenPreferences={handleOpenConfigurator}
-            onAddNewScope={() => handleOpenConfigurator()}
+            onOpenPreferences={(scope) => handleOpenConfigurator(scope, 'edit')}
+            onAddNewScope={() => handleOpenConfigurator(undefined, 'create')}
           />
         </section>
 
@@ -247,6 +278,9 @@ export const App: React.FC = () => {
         isOpen={isConfiguratorOpen}
         onClose={() => setIsConfiguratorOpen(false)}
         scopes={scopes}
+        visibleScopeIds={visibleScopeIds}
+        onSaveVisibleScopeIds={handleSaveVisibleScopeIds}
+        initialTab={configuratorInitialTab}
         selectedScopeId={configuratorSelectedId}
         onSelectScopeId={(id) => setConfiguratorSelectedId(id)}
         onSavePreferences={handleSavePreferences}

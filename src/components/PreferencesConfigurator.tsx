@@ -9,7 +9,11 @@ import {
   CheckCircle2, 
   AlertCircle,
   FolderPlus,
-  Sliders
+  Sliders,
+  CheckSquare,
+  Square,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import type { ScopeDefinition, ScopePreferences } from '../types';
 
@@ -17,6 +21,9 @@ interface ConfiguratorModalProps {
   isOpen: boolean;
   onClose: () => void;
   scopes: ScopeDefinition[];
+  visibleScopeIds: string[];
+  onSaveVisibleScopeIds: (ids: string[]) => void;
+  initialTab?: 'selector' | 'edit' | 'create';
   selectedScopeId: string | null;
   onSelectScopeId: (id: string) => void;
   onSavePreferences: (prefs: ScopePreferences, updatedScope?: ScopeDefinition) => void;
@@ -28,13 +35,22 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
   isOpen,
   onClose,
   scopes,
+  visibleScopeIds,
+  onSaveVisibleScopeIds,
+  initialTab = 'selector',
   selectedScopeId,
   onSelectScopeId,
   onSavePreferences,
   onCreateScope,
   onDeleteScope,
 }) => {
-  const [activeTab, setActiveTab] = useState<'edit' | 'create'>('edit');
+  const [activeTab, setActiveTab] = useState<'selector' | 'edit' | 'create'>(initialTab);
+  
+  // Estado local para el Selector de Visibilidad en la Web
+  const [tempVisibleIds, setTempVisibleIds] = useState<string[]>(visibleScopeIds);
+  const [selectorSavedFeedback, setSelectorSavedFeedback] = useState(false);
+
+  // Categoría actual seleccionada para editar
   const currentScope = scopes.find((s) => s.id === selectedScopeId) || scopes[0];
 
   // Estado del formulario de edición
@@ -55,7 +71,14 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
   const [createTagInput, setCreateTagInput] = useState('');
   const [createError, setCreateError] = useState('');
 
-  // Sincronizar estado cuando cambia la categoría seleccionada
+  // Sincronizar estados al abrir o cambiar props
+  useEffect(() => {
+    if (isOpen) {
+      setTempVisibleIds(visibleScopeIds);
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, visibleScopeIds, initialTab]);
+
   useEffect(() => {
     if (currentScope) {
       setEditPreferences({ ...currentScope.defaultPreferences });
@@ -64,6 +87,33 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
   }, [currentScope?.id]);
 
   if (!isOpen) return null;
+
+  // --- MANEJADORES DEL SELECTOR DE VISIBILIDAD ---
+  const handleToggleVisible = (id: string) => {
+    if (tempVisibleIds.includes(id)) {
+      // Debe haber al menos 1 visible
+      if (tempVisibleIds.length === 1) {
+        alert('Debe quedar al menos una categoría seleccionada para mostrar en la web.');
+        return;
+      }
+      setTempVisibleIds(tempVisibleIds.filter((scopeId) => scopeId !== id));
+    } else {
+      setTempVisibleIds([...tempVisibleIds, id]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    setTempVisibleIds(scopes.map((s) => s.id));
+  };
+
+  const handleSaveVisibility = () => {
+    onSaveVisibleScopeIds(tempVisibleIds);
+    setSelectorSavedFeedback(true);
+    setTimeout(() => {
+      setSelectorSavedFeedback(false);
+      onClose();
+    }, 600);
+  };
 
   // --- MANEJADORES DE EDICIÓN ---
   const handleAddTagToEdit = (e?: React.FormEvent) => {
@@ -146,7 +196,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
       name: newCategoryName.trim(),
       label: `Actualización de ${newCategoryName.trim()}`,
       icon: 'Sparkles',
-      color: '#06B6D4', // Cyan
+      color: '#06B6D4',
       accentGradient: 'from-cyan-500 to-blue-700',
       description: newCategoryDescription.trim(),
       defaultPreferences: {
@@ -178,7 +228,10 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
     };
 
     onCreateScope(createdScope);
-    // Limpiar formulario y cambiar a la pestaña de edición con la nueva categoría activa
+    // Añadir automáticamente a la lista visible de la web
+    onSaveVisibleScopeIds([...visibleScopeIds, createdScope.id]);
+    setTempVisibleIds([...tempVisibleIds, createdScope.id]);
+
     setNewCategoryName('');
     setNewCategoryDescription('');
     setNewCategoryTags([]);
@@ -191,7 +244,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm animate-fadeIn">
       <div className="bg-slate-900 border border-slate-700 w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         
-        {/* Cabecera Principal del Configurador */}
+        {/* Cabecera Principal */}
         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold">
@@ -199,10 +252,10 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
-                Configurador de Preferencias
+                Configurador & Selector de Preferencias
               </h2>
               <p className="text-xs text-slate-400">
-                Selecciona, edita o crea categorías con sus etiquetas y horas de búsqueda
+                Elige qué categorías aparecen en la web, edita sus etiquetas o crea nuevas
               </p>
             </div>
           </div>
@@ -214,38 +267,170 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
           </button>
         </div>
 
-        {/* Pestañas: [Editar Categoría] | [Crear Categoría] */}
-        <div className="flex border-b border-slate-800 bg-slate-950/60 px-6 pt-3 gap-2">
+        {/* 3 Pestañas Principales */}
+        <div className="flex border-b border-slate-800 bg-slate-950/60 px-6 pt-3 gap-2 overflow-x-auto">
+          {/* Pestaña 1: Selector de Categorías Visibles */}
+          <button
+            onClick={() => setActiveTab('selector')}
+            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
+              activeTab === 'selector'
+                ? 'border-emerald-500 text-emerald-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Eye className="w-4 h-4" />
+            <span>Selector de Categorías en la Web</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">
+              {tempVisibleIds.length}/{scopes.length}
+            </span>
+          </button>
+
+          {/* Pestaña 2: Editar Categorías & Etiquetas */}
           <button
             onClick={() => setActiveTab('edit')}
-            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
+            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
               activeTab === 'edit'
                 ? 'border-emerald-500 text-emerald-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <Sliders className="w-4 h-4" />
-            <span>Editar Categorías</span>
+            <span>Editar Categoría & Tags (máx 20)</span>
           </button>
 
+          {/* Pestaña 3: Crear Nueva Categoría */}
           <button
             onClick={() => setActiveTab('create')}
-            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
+            className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 shrink-0 ${
               activeTab === 'create'
                 ? 'border-emerald-500 text-emerald-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <FolderPlus className="w-4 h-4" />
-            <span>+ Crear Nueva Categoría</span>
+            <span>+ Crear Categoría</span>
           </button>
         </div>
 
-        {/* CONTENIDO DE LA PESTAÑA: EDITAR CATEGORÍA */}
+        {/* PESTAÑA 1: SELECTOR DE PREFERENCIAS PARA TODA LA WEB */}
+        {activeTab === 'selector' && (
+          <div className="p-6 space-y-5 overflow-y-auto flex-1">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-950/20 border border-emerald-500/30 p-4 rounded-xl">
+              <div>
+                <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-1.5">
+                  <CheckSquare className="w-4 h-4 text-emerald-400" />
+                  <span>Categorías activas en toda la web</span>
+                </h3>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Marca las categorías que quieres que se muestren en la pantalla principal y en los repasos del asistente.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleSelectAll}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition"
+                >
+                  Activar Todas
+                </button>
+              </div>
+            </div>
+
+            {/* Listado de Categorías con interruptor y detalles */}
+            <div className="grid grid-cols-1 gap-3">
+              {scopes.map((scope) => {
+                const isSelected = tempVisibleIds.includes(scope.id);
+
+                return (
+                  <div
+                    key={scope.id}
+                    onClick={() => handleToggleVisible(scope.id)}
+                    className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-4 ${
+                      isSelected
+                        ? 'bg-slate-800/80 border-emerald-500/60 shadow-sm'
+                        : 'bg-slate-900/40 border-slate-800 opacity-60 hover:opacity-90'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                      {/* Checkbox Icon */}
+                      <div className="shrink-0 text-emerald-400">
+                        {isSelected ? (
+                          <CheckSquare className="w-5 h-5 text-emerald-400" />
+                        ) : (
+                          <Square className="w-5 h-5 text-slate-600" />
+                        )}
+                      </div>
+
+                      {/* Icono de la categoría */}
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow"
+                        style={{ backgroundColor: scope.color }}
+                      >
+                        <span className="text-base font-bold">
+                          {scope.name.substring(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+
+                      {/* Información de la categoría */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-white truncate">
+                            {scope.name}
+                          </h4>
+                          {isSelected ? (
+                            <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                              <Eye className="w-3 h-3" /> Visible en la web
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-semibold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <EyeOff className="w-3 h-3" /> Oculta
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs text-slate-400 truncate mt-0.5">
+                          {scope.description}
+                        </p>
+
+                        <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1.5">
+                          <span className="flex items-center gap-1 text-slate-400">
+                            <Clock className="w-3 h-3 text-amber-400" />
+                            {scope.defaultPreferences.preferredTime} h
+                          </span>
+                          <span className="flex items-center gap-1 text-slate-400">
+                            <Tag className="w-3 h-3 text-emerald-400" />
+                            {scope.defaultPreferences.tags.length} etiquetas
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botón rápido para ir a editar sus etiquetas */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectScopeId(scope.id);
+                        setActiveTab('edit');
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition shrink-0"
+                    >
+                      Editar Tags
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+          </div>
+        )}
+
+        {/* PESTAÑA 2: EDITAR CATEGORÍA & ETIQUETAS */}
         {activeTab === 'edit' && (
           <div className="p-6 space-y-6 overflow-y-auto flex-1">
             
-            {/* 1. Selector de Categoría a Editar */}
+            {/* Selector de Categoría a Editar */}
             <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-800 space-y-3">
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
                 1. Selecciona la Categoría a configurar:
@@ -274,7 +459,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
 
             {currentScope && (
               <>
-                {/* 2. Descripción de la Categoría */}
+                {/* Descripción de la Categoría */}
                 <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-800 space-y-2">
                   <label className="block text-xs font-semibold text-slate-200">
                     Descripción de la Categoría
@@ -291,7 +476,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                   />
                 </div>
 
-                {/* 3. Hora de Búsqueda Completa y Ámbito Geográfico */}
+                {/* Hora de Búsqueda Completa y Ámbito Geográfico */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   
                   {/* Hora de Búsqueda */}
@@ -361,7 +546,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                   </div>
                 </div>
 
-                {/* 4. Etiquetas Específicas (Límite 20) */}
+                {/* Etiquetas Específicas (Límite 20) */}
                 <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -455,7 +640,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
           </div>
         )}
 
-        {/* CONTENIDO DE LA PESTAÑA: CREAR NUEVA CATEGORÍA */}
+        {/* PESTAÑA 3: CREAR NUEVA CATEGORÍA */}
         {activeTab === 'create' && (
           <form onSubmit={handleCreateCategorySubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
             
@@ -572,17 +757,34 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
           </form>
         )}
 
-        {/* Footer con Botón de Guardar en Modo Edición */}
-        {activeTab === 'edit' && (
-          <div className="px-6 py-4 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between">
+        {/* Footer con Botón según la Pestaña Activa */}
+        <div className="px-6 py-4 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition"
+          >
+            Cerrar
+          </button>
+
+          {activeTab === 'selector' && (
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white transition"
+              onClick={handleSaveVisibility}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 transition"
             >
-              Cerrar
+              {selectorSavedFeedback ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <span>¡Selección Aplicada!</span>
+                </>
+              ) : (
+                <span>Aplicar a toda la web ({tempVisibleIds.length} activas)</span>
+              )}
             </button>
+          )}
 
+          {activeTab === 'edit' && (
             <button
               type="button"
               onClick={handleSaveEdit}
@@ -597,8 +799,8 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                 <span>Guardar Preferencias de {currentScope?.name}</span>
               )}
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
       </div>
     </div>

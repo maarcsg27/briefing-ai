@@ -180,7 +180,6 @@ export const storageService = {
 
   savePreferences(preferences: ScopePreferences): void {
     try {
-      // Limitar a máximo 20 etiquetas por seguridad y requerimiento
       const sanitized = {
         ...preferences,
         tags: preferences.tags.slice(0, 20),
@@ -191,6 +190,33 @@ export const storageService = {
       );
     } catch (e) {
       console.error('Error saving preferences:', e);
+    }
+  },
+
+  getVisibleScopeIds(): string[] {
+    try {
+      const stored = localStorage.getItem('briefing_ai_visible_scopes_v2');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error('Error loading visible scopes:', e);
+    }
+    // Por defecto, todas las categorías están activas y visibles
+    const all = this.getAllScopes();
+    const allIds = all.map((s) => s.id);
+    this.saveVisibleScopeIds(allIds);
+    return allIds;
+  },
+
+  saveVisibleScopeIds(ids: string[]): void {
+    try {
+      localStorage.setItem('briefing_ai_visible_scopes_v2', JSON.stringify(ids));
+    } catch (e) {
+      console.error('Error saving visible scopes:', e);
     }
   },
 };
