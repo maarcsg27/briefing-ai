@@ -593,10 +593,10 @@ export const newsService = {
       }
     });
 
-    // 3. PUNTUAR Y PRIORIZAR según etiquetas configuradas por el usuario
+    // 3. PUNTUAR Y FILTRAR ESTRICTAMENTE según etiquetas configuradas por el usuario
     const userTags = (preferences.tags || []).map((t) => t.trim());
 
-    const scoredArticles = uniqueArticles.map((art) => {
+    let scoredArticles = uniqueArticles.map((art) => {
       const fullText = `${art.title} ${art.summary} ${art.contentSnippet}`.toLowerCase();
       
       const matched = userTags.filter((tag) => {
@@ -618,6 +618,14 @@ export const newsService = {
         is24h: true,
       };
     });
+
+    // Si el usuario tiene etiquetas configuradas, filtrar estrictamente solo las noticias que coincidan con sus etiquetas
+    if (userTags.length > 0) {
+      const tagMatched = scoredArticles.filter((art) => art.matchedTags.length > 0);
+      if (tagMatched.length > 0) {
+        scoredArticles = tagMatched;
+      }
+    }
 
     scoredArticles.sort((a, b) => (b.score || 0) - (a.score || 0));
 

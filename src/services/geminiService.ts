@@ -60,15 +60,15 @@ export const geminiService = {
     const promptText = `
 Actúa como un motor inteligente de curación y análisis de medios. Tu tarea es procesar las fuentes registradas en la biblioteca para la categoría "${scope.name}", evaluar los contenidos recientes de las ÚLTIMAS 24 HORAS y seleccionar únicamente los artículos más relevantes que cumplan con los criterios y filtros definidos a continuación.
 
-1. REGLAS DE INGESTA Y FILTRADO:
+1. REGLAS DE INGESTA Y FILTRADO ESTRICTO:
 - Fuentes a consultar: Analiza únicamente las fuentes activas configuradas en la biblioteca del usuario para "${scope.name}":
 ${sourcesStr || '- Medios acreditados del sector'}
 
-- Criterios de inclusión (Etiquetas prioritarias): Prioriza noticias que aborden los siguientes temas o etiquetas clave: [${tagsStr}]
+- Criterios de inclusión OBLIGATORIOS (Etiquetas clave): CADA NOTICIA SELECCIONADA DEBE HACER REFERENCIA DIRECCIÓN O CONTENER AL MENOS UNA DE LAS ETIQUETAS CLAVE: [${tagsStr}].
 
 - Criterios de exclusión (Palabras y temas vetados): Descarta de forma automática cualquier artículo que contenga o trate sobre: [${bannedStr}]
 
-- Límite de resultados: Devuelve un total estricto de ${maxLimit} noticias publicadas en las últimas 24 horas, ordenadas de mayor a menor relevancia o impacto.
+- Límite de resultados: Devuelve un total estricto de ${maxLimit} noticias de las últimas 24 horas que correspondan a las fuentes y etiquetas indicadas, ordenadas de mayor a menor relevancia o impacto.
 
 2. ESTRUCTURA Y FICHA REQUERIDA PARA CADA NOTICIA SELECCIONADA:
 - "title": Titular claro y conciso (sin repetir la fuente en el título).
@@ -76,9 +76,9 @@ ${sourcesStr || '- Medios acreditados del sector'}
 - "sourceDomain": Dominio web exacto de la fuente de la biblioteca (ej. "${enabledSourcesList[0]?.domain || 'cop.es'}").
 - "sourceUrl": URL directa al artículo original en la fuente.
 - "publishedAt": Fecha o tiempo relativo de publicación (últimas 24h).
-- "matchedTags": Array con las etiquetas asociadas (ej. ["${preferences.tags[0] || 'Actualidad'}"]).
+- "matchedTags": Array con la etiqueta o etiquetas de la lista del usuario con las que coincide la noticia (ej. ["${preferences.tags[0] || 'Actualidad'}"]).
 - "summary": Resumen ejecutivo de 3 a 5 líneas con los hechos clave: qué pasó, actores involucrados y consecuencias principales.
-- "whyRelevance": Una frase explicando por qué cumple con los criterios de interés del usuario.
+- "whyRelevance": Una frase explicando por qué cumple con los criterios de interés del usuario y las etiquetas seleccionadas.
 
 3. RESTRICCIONES OBLIGATORIAS:
 - No incluyas noticias duplicadas sobre el mismo hecho; si varias fuentes lo cubren, selecciona la más completa o reciente.
@@ -94,7 +94,7 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato 
       "id": "ai-1",
       "title": "Titular claro y conciso",
       "summary": "Resumen ejecutivo de 3 a 5 líneas desglosando qué pasó, actores involucrados y consecuencias principales...",
-      "whyRelevance": "Explicación en 1 frase de por qué es relevante según los criterios del usuario.",
+      "whyRelevance": "Explicación en 1 frase de por qué es relevante según los criterios y etiquetas del usuario.",
       "contentSnippet": "Extracto explicativo de soporte.",
       "source": "Nombre del Medio",
       "sourceDomain": "dominio.com",
