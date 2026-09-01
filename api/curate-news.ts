@@ -296,6 +296,10 @@ ${JSON.stringify(batch, null, 2)}
                     relevanceScore: typeof art.relevance_score === 'number' ? art.relevance_score : 8,
                     whyRelevance: `Coincide con etiquetas: ${(art.etiquetas_coincidentes || tags).join(', ')}`,
                   };
+                finalArticles.sort((a: any, b: any) => {
+                  const scoreA = (a.matchedTags ? a.matchedTags.length : 0) * 20 + (a.relevanceScore || 0);
+                  const scoreB = (b.matchedTags ? b.matchedTags.length : 0) * 20 + (b.relevanceScore || 0);
+                  return scoreB - scoreA;
                 });
 
                 return res.status(200).json({

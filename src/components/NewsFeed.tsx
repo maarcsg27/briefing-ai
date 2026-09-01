@@ -16,11 +16,11 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-200">
-              Titulares de las Últimas 24h ({briefing.articles.length} seleccionadas)
+              Titulares Seleccionados de las Últimas 24h ({briefing.articles.length} noticias)
             </h3>
           </div>
           <span className="text-[11px] sm:text-xs text-slate-400">
-            Priorizadas por etiquetas configuradas
+            Ordenadas por número de coincidencias de etiquetas (vetadas descartadas)
           </span>
         </div>
 
@@ -57,21 +57,21 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
                     </span>
                   </div>
 
-                  {/* Titular de la Noticia */}
+                  {/* Titular Seleccionado */}
                   <div className="mb-2">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 block mb-0.5">
-                      Titular:
+                      Titular Seleccionado:
                     </span>
                     <h4 className="text-base sm:text-lg font-bold text-white leading-snug">
                       {article.title}
                     </h4>
                   </div>
 
-                  {/* Resumen de lo más importante que se cuenta en la noticia */}
-                  <div className="mb-3.5 bg-slate-950/50 p-3 rounded-xl border border-slate-800/90 space-y-2">
+                  {/* Resumen del Contenido del Artículo */}
+                  <div className="mb-3.5 bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/90 space-y-2">
                     <div>
                       <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
-                        Resumen Ejecutivo (3-5 líneas):
+                        Resumen del Contenido del Artículo:
                       </span>
                       <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
                         {article.summary || article.contentSnippet}
