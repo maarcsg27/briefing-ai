@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Radio, Sparkles, Sliders, Timer, RefreshCw, UserCheck } from 'lucide-react';
+import { Sparkles, Sliders, Timer, RefreshCw, UserCheck, Compass } from 'lucide-react';
 import type { ScopeDefinition, ScopePreferences } from '../types';
 
 interface HeaderProps {
@@ -26,14 +26,22 @@ export const Header: React.FC<HeaderProps> = ({
   visibleScopeIds = [],
   activeVersionName
 }) => {
-  // Estado del contador regresivo y reloj
   const [countdown, setCountdown] = useState<string>('--:--:--');
   const [nextUpdateInfo, setNextUpdateInfo] = useState<{ time: string; scopeName: string }>({
     time: '08:30',
     scopeName: 'Noticias',
   });
 
-  // Calcular la lista de horas preferidas de las categorías visibles en la web
+  const currentDateFormatted = useMemo(() => {
+    const now = new Date();
+    return now.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  }, []);
+
   const scheduledUpdates = useMemo(() => {
     const activeScopes = scopes.filter((s) => visibleScopeIds.length === 0 || visibleScopeIds.includes(s.id));
     return activeScopes.map((s) => {
@@ -45,7 +53,6 @@ export const Header: React.FC<HeaderProps> = ({
     });
   }, [scopes, visibleScopeIds, preferencesMap]);
 
-  // Actualizar la cuenta atrás cada segundo hacia la siguiente hora de actualización más próxima
   useEffect(() => {
     const calculateCountdown = () => {
       const now = new Date();
@@ -59,7 +66,6 @@ export const Header: React.FC<HeaderProps> = ({
         return;
       }
 
-      // Buscar la actualización más próxima en el día o para mañana
       let minDiffSeconds = Infinity;
       let nextTargetTime = '';
       let nextTargetScope = '';
@@ -69,7 +75,6 @@ export const Header: React.FC<HeaderProps> = ({
         const targetSeconds = (h || 0) * 3600 + (m || 0) * 60;
         
         let diff = targetSeconds - currentTotalSeconds;
-        // Si la hora ya pasó hoy, se programa para mañana (+24h)
         if (diff <= 0) {
           diff += 24 * 3600;
         }
@@ -99,109 +104,102 @@ export const Header: React.FC<HeaderProps> = ({
   }, [scheduledUpdates]);
 
   return (
-    <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur-md sticky top-0 z-30">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-        
-        {/* Logo & Marca */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <Radio className="w-5 h-5 text-slate-950 font-bold" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
-                Briefing<span className="text-emerald-400">AI</span>
-              </h1>
-              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Oficial & Curado
-              </span>
-              {activeVersionName && (
-                <button
-                  onClick={onOpenSaveVersionModal}
-                  title="Sesión activa actual. Haz clic para cambiar o crear otra sesión."
-                  className="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 transition flex items-center gap-1 cursor-pointer"
-                >
-                  <UserCheck className="w-3 h-3 text-indigo-400" />
-                  <span>Sesión: <span className="text-white font-mono normal-case">{activeVersionName}</span></span>
-                </button>
-              )}
-            </div>
-            <p className="text-xs text-slate-400">
-              Asistente de noticias inteligentes con seguimiento de etiquetas
-            </p>
-          </div>
-        </div>
-
-        {/* Cuenta Atrás y Acciones adaptadas a Móvil / Tablet / Desktop */}
-        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
-          
-          {/* Reloj con Cuenta Atrás hasta la siguiente hora de actualización */}
-          <div 
-            title={`Próxima actualización a las ${nextUpdateInfo.time} h (${nextUpdateInfo.scopeName})`}
-            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 shadow-inner group transition text-left"
-          >
-            <div className="flex items-center gap-1">
-              <Timer className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 animate-pulse shrink-0" />
-              <span className="text-[10px] sm:text-[11px] uppercase font-bold tracking-wider text-slate-400 group-hover:text-emerald-300 transition">
-                Próxima:
-              </span>
-            </div>
-            <span className="font-mono text-xs sm:text-sm font-bold text-emerald-300 tracking-wider">
-              {countdown}
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium pl-1 border-l border-slate-700/60 hidden lg:inline">
-              {nextUpdateInfo.time}h ({nextUpdateInfo.scopeName})
-            </span>
+    <header className="border-b border-paper-750 bg-[#0c0f17]/95 backdrop-blur-md sticky top-0 z-30 font-sans">
+      {/* Barra de cabecera editorial (Date Masthead) */}
+      <div className="border-b border-paper-800 bg-[#080a0f] py-1.5 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
+          <div className="flex items-center gap-3">
+            <span className="capitalize font-semibold text-slate-300">{currentDateFormatted}</span>
+            <span className="text-slate-600">•</span>
+            <span className="hidden md:inline uppercase tracking-widest text-slate-400">Edición Hiper-Personalizada</span>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Botón de Sincronización / Búsqueda Exhaustiva 24h */}
-            {onTriggerSync && (
-              <button
-                onClick={onTriggerSync}
-                disabled={isSyncing}
-                title="Ejecutar búsqueda exhaustiva de las últimas 24h ahora"
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold border transition shadow-sm ${
-                  isSyncing
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse cursor-wait'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:text-white'
-                }`}
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-amber-400' : 'text-emerald-400'}`} />
-                <span className="hidden md:inline">{isSyncing ? 'Buscando...' : 'Buscar 24h'}</span>
-              </button>
-            )}
-
-            {/* Botón de Configurador General */}
-            {onOpenConfigurator && (
-              <button
-                onClick={onOpenConfigurator}
-                title="Abrir configurador de categorías y preferencias"
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 transition shadow-sm"
-              >
-                <Sliders className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="inline">Configurador</span>
-              </button>
-            )}
-
-            {/* Botón de Gestor de Sesiones */}
-            {onOpenSaveVersionModal && (
+          <div className="flex items-center gap-3">
+            {activeVersionName && (
               <button
                 onClick={onOpenSaveVersionModal}
-                title="Gestor de sesiones para ordenador, teléfono o perfiles"
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 transition shadow-sm"
+                title="Cambiar o gestionar sesión"
+                className="hover:text-emerald-300 transition flex items-center gap-1 cursor-pointer font-bold text-emerald-400"
               >
-                <UserCheck className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="inline">Sesiones</span>
+                <UserCheck className="w-3 h-3 text-emerald-400" />
+                <span>Sesión activa: <span className="underline decoration-emerald-500/50">{activeVersionName}</span></span>
               </button>
             )}
+            <div title={`Próximo ciclo a las ${nextUpdateInfo.time}h (${nextUpdateInfo.scopeName})`} className="flex items-center gap-1.5 text-slate-400">
+              <Timer className="w-3 h-3 text-amber-400" />
+              <span>Próxima actualización: <strong className="text-white font-mono">{countdown}</strong></span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Banner de estado si está activo */}
+      {/* Main Header / Masthead */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        
+        {/* Editorial Logo */}
+        <div className="flex items-center gap-3.5">
+          <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+            <Compass className="w-5 h-5 text-emerald-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-serif italic font-bold text-2xl tracking-tight text-white leading-none">
+                Briefing<span className="text-emerald-400 not-italic">.AI</span>
+              </h1>
+              <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400/90 px-2 py-0.5 border border-emerald-500/30 rounded bg-emerald-950/30">
+                Prensa Curada
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-sans mt-0.5">
+              Análisis continuo por etiquetas y fuentes verificadas
+            </p>
+          </div>
+        </div>
+
+        {/* Acciones principales */}
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+          {onTriggerSync && (
+            <button
+              onClick={onTriggerSync}
+              disabled={isSyncing}
+              title="Buscar noticias de las últimas 24h"
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                isSyncing
+                  ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 cursor-wait'
+                  : 'bg-paper-850 hover:bg-paper-800 text-slate-200 border-paper-750 hover:border-slate-600'
+              }`}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-amber-400' : 'text-emerald-400'}`} />
+              <span>{isSyncing ? 'Buscando...' : 'Buscar 24h'}</span>
+            </button>
+          )}
+
+          {onOpenConfigurator && (
+            <button
+              onClick={onOpenConfigurator}
+              title="Abrir configurador de categorías y fuentes"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-300 border border-emerald-500/40 transition"
+            >
+              <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Configuración</span>
+            </button>
+          )}
+
+          {onOpenSaveVersionModal && (
+            <button
+              onClick={onOpenSaveVersionModal}
+              title="Gestor de sesiones guardadas"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-paper-850 hover:bg-paper-800 text-indigo-300 border border-indigo-500/30 transition"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Sesiones</span>
+            </button>
+          )}
+        </div>
+      </div>
+
       {statusText && (
-        <div className="bg-emerald-950/40 border-t border-emerald-800/40 px-4 py-1.5 text-center text-xs text-emerald-300 flex items-center justify-center gap-2 animate-fadeIn">
+        <div className="bg-emerald-950/50 border-t border-emerald-800/40 px-4 py-1.5 text-center text-xs text-emerald-300 font-mono flex items-center justify-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
           <span>{statusText}</span>
         </div>
