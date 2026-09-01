@@ -99,3 +99,5 @@ export interface ConfigVersion {
   preferencesMap: Record<string, ScopePreferences>;
   scopes: ScopeDefinition[];
 }
+
+export type SessionProfile = ConfigVersion;

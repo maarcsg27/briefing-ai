@@ -452,7 +452,45 @@ export const storageService = {
     return prefs;
   },
 
-  // --- GESTIÓN DE VERSIONES Y PERFILES DE CONFIGURACIÓN DE LA APP ---
+  // --- GESTIÓN DE SESIONES Y PERFILES DE CONFIGURACIÓN DE LA APP ---
+  getActiveSessionInfo(): { id: string; name: string } | null {
+    return this.getActiveVersionInfo();
+  },
+
+  setActiveSessionInfo(id: string, name: string): void {
+    this.setActiveVersionInfo(id, name);
+  },
+
+  getSessionProfiles(): ConfigVersion[] {
+    return this.getConfigVersions();
+  },
+
+  saveSessionProfile(
+    sessionName: string,
+    visibleScopeIds: string[],
+    preferencesMap: Record<string, ScopePreferences>,
+    scopes: ScopeDefinition[]
+  ): ConfigVersion {
+    return this.saveConfigVersion(sessionName, visibleScopeIds, preferencesMap, scopes);
+  },
+
+  updateSessionProfile(
+    sessionId: string,
+    visibleScopeIds: string[],
+    preferencesMap: Record<string, ScopePreferences>,
+    scopes: ScopeDefinition[]
+  ): ConfigVersion | null {
+    return this.updateConfigVersion(sessionId, visibleScopeIds, preferencesMap, scopes);
+  },
+
+  deleteSessionProfile(sessionId: string): ConfigVersion[] {
+    return this.deleteConfigVersion(sessionId);
+  },
+
+  loadSessionProfile(session: ConfigVersion): void {
+    this.loadConfigVersion(session);
+  },
+
   getActiveVersionInfo(): { id: string; name: string } | null {
     try {
       const raw = localStorage.getItem('briefing_ai_active_version');

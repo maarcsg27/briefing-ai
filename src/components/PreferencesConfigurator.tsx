@@ -16,7 +16,7 @@ import {
   EyeOff,
   Newspaper,
   ShieldAlert,
-  Bookmark
+  UserCheck
 } from 'lucide-react';
 import type { ScopeDefinition, ScopePreferences } from '../types';
 
@@ -955,8 +955,8 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                 onClick={onOpenSaveVersionModal}
                 className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 border border-indigo-500/40 text-xs font-bold transition"
               >
-                <Bookmark className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Guardar como Versión / Perfil...</span>
+                <UserCheck className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Gestor de Sesiones & Perfiles...</span>
               </button>
             )}
           </div>

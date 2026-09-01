@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Mic, MicOff, Radio, Sparkles, Sliders, Timer, RefreshCw, Bookmark } from 'lucide-react';
-import { speechService } from '../services/speechService';
+import { Radio, Sparkles, Sliders, Timer, RefreshCw, UserCheck } from 'lucide-react';
 import type { ScopeDefinition, ScopePreferences } from '../types';
 
 interface HeaderProps {
-  onVoiceCommand: (command: string) => void;
+  onVoiceCommand?: (command: string) => void;
   onOpenConfigurator?: () => void;
   onOpenSaveVersionModal?: () => void;
   onTriggerSync?: () => void;
@@ -17,7 +16,6 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
-  onVoiceCommand, 
   onOpenConfigurator, 
   onOpenSaveVersionModal,
   onTriggerSync,
@@ -28,9 +26,6 @@ export const Header: React.FC<HeaderProps> = ({
   visibleScopeIds = [],
   activeVersionName
 }) => {
-  const [isListening, setIsListening] = useState(false);
-  const [activeSpeechInfo, setActiveSpeechInfo] = useState<string>('');
-  
   // Estado del contador regresivo y reloj
   const [countdown, setCountdown] = useState<string>('--:--:--');
   const [nextUpdateInfo, setNextUpdateInfo] = useState<{ time: string; scopeName: string }>({
@@ -103,42 +98,6 @@ export const Header: React.FC<HeaderProps> = ({
     return () => clearInterval(interval);
   }, [scheduledUpdates]);
 
-  const handleToggleListen = () => {
-    if (isListening) {
-      speechService.stop();
-      setIsListening(false);
-      setActiveSpeechInfo('');
-    } else {
-      setIsListening(true);
-      setActiveSpeechInfo('Escuchando... Di: "Actualización de Fútbol" o "Finanzas"');
-      
-      const { stop } = speechService.listenCommand(
-        (transcript) => {
-          setIsListening(false);
-          setActiveSpeechInfo(`Comando detectado: "${transcript}"`);
-          onVoiceCommand(transcript);
-        },
-        (err) => {
-          setIsListening(false);
-          setActiveSpeechInfo('No se pudo acceder al micrófono o no hubo respuesta.');
-          console.warn(err);
-        }
-      );
-
-      // Auto timeout de 8 segundos si no habla
-      setTimeout(() => {
-        setIsListening((prev) => {
-          if (prev) {
-            stop();
-            setActiveSpeechInfo('');
-            return false;
-          }
-          return prev;
-        });
-      }, 8000);
-    }
-  };
-
   return (
     <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur-md sticky top-0 z-30">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -159,21 +118,21 @@ export const Header: React.FC<HeaderProps> = ({
               {activeVersionName && (
                 <button
                   onClick={onOpenSaveVersionModal}
-                  title="Perfil de versión activo. Haz clic para cambiar o actualizar."
+                  title="Sesión activa actual. Haz clic para cambiar o crear otra sesión."
                   className="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 transition flex items-center gap-1 cursor-pointer"
                 >
-                  <Bookmark className="w-3 h-3 text-indigo-400" />
-                  <span>Versión: <span className="text-white font-mono normal-case">{activeVersionName}</span></span>
+                  <UserCheck className="w-3 h-3 text-indigo-400" />
+                  <span>Sesión: <span className="text-white font-mono normal-case">{activeVersionName}</span></span>
                 </button>
               )}
             </div>
             <p className="text-xs text-slate-400">
-              Asistente de noticias por voz con seguimiento de etiquetas
+              Asistente de noticias inteligentes con seguimiento de etiquetas
             </p>
           </div>
         </div>
 
-        {/* Cuenta Atrás y Acciones de Voz adaptadas a Móvil / Tablet / Desktop */}
+        {/* Cuenta Atrás y Acciones adaptadas a Móvil / Tablet / Desktop */}
         <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
           
           {/* Reloj con Cuenta Atrás hasta la siguiente hora de actualización */}
@@ -225,49 +184,26 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Botón de Guardar Versión / Perfil */}
+            {/* Botón de Gestor de Sesiones */}
             {onOpenSaveVersionModal && (
               <button
                 onClick={onOpenSaveVersionModal}
-                title="Guardar o cargar versiones de configuración"
+                title="Gestor de sesiones para ordenador, teléfono o perfiles"
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 transition shadow-sm"
               >
-                <Bookmark className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="inline">Versiones</span>
+                <UserCheck className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="inline">Sesiones</span>
               </button>
             )}
-
-            {/* Botón de Comando por Voz */}
-            <button
-              onClick={handleToggleListen}
-              title="Pedir actualización por voz"
-              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all shadow-md ${
-                isListening
-                  ? 'bg-rose-500 text-white animate-pulse shadow-rose-500/30 ring-2 ring-rose-400/50'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-600'
-              }`}
-            >
-              {isListening ? (
-                <>
-                  <MicOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Escuchando...</span>
-                </>
-              ) : (
-                <>
-                  <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
-                  <span className="hidden sm:inline">Hablar</span>
-                </>
-              )}
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Banner de estado o comando por voz si está activo */}
-      {(activeSpeechInfo || statusText) && (
+      {/* Banner de estado si está activo */}
+      {statusText && (
         <div className="bg-emerald-950/40 border-t border-emerald-800/40 px-4 py-1.5 text-center text-xs text-emerald-300 flex items-center justify-center gap-2 animate-fadeIn">
           <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-          <span>{activeSpeechInfo || statusText}</span>
+          <span>{statusText}</span>
         </div>
       )}
     </header>

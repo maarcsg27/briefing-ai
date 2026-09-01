@@ -5,7 +5,7 @@ import { PreferencesConfigurator } from './components/PreferencesConfigurator';
 import { BriefingPlayer } from './components/BriefingPlayer';
 import { NewsFeed } from './components/NewsFeed';
 import { LibraryManager } from './components/LibraryManager';
-import { SaveVersionModal } from './components/SaveVersionModal';
+import { SessionSelectorModal } from './components/SessionSelectorModal';
 import { storageService } from './services/storageService';
 import { newsService } from './services/newsService';
 import { geminiService } from './services/geminiService';
@@ -465,20 +465,20 @@ export const App: React.FC = () => {
         onOpenSaveVersionModal={() => setIsSaveVersionModalOpen(true)}
       />
 
-      {/* Modal de Guardar y Cargar Versiones / Perfiles de Configuración */}
-      <SaveVersionModal
+      {/* Gestor y Selección de Sesiones / Perfiles de Configuración */}
+      <SessionSelectorModal
         isOpen={isSaveVersionModalOpen}
         onClose={() => setIsSaveVersionModalOpen(false)}
         visibleScopeIds={visibleScopeIds}
         preferencesMap={preferencesMap}
         scopes={scopes}
-        onApplyVersion={(ver) => {
-          setVisibleScopeIds(ver.visibleScopeIds);
-          setPreferencesMap(ver.preferencesMap);
-          if (ver.scopes && ver.scopes.length > 0) {
-            setScopes(ver.scopes);
+        onApplySession={(session) => {
+          setVisibleScopeIds(session.visibleScopeIds);
+          setPreferencesMap(session.preferencesMap);
+          if (session.scopes && session.scopes.length > 0) {
+            setScopes(session.scopes);
           }
-          setActiveVersionName(ver.name);
+          setActiveVersionName(session.name);
         }}
       />
     </div>
