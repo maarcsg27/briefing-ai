@@ -13,6 +13,7 @@ interface HeaderProps {
   scopes?: ScopeDefinition[];
   preferencesMap?: Record<string, ScopePreferences>;
   visibleScopeIds?: string[];
+  activeVersionName?: string | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -24,7 +25,8 @@ export const Header: React.FC<HeaderProps> = ({
   isSyncing = false,
   scopes = [],
   preferencesMap = {},
-  visibleScopeIds = []
+  visibleScopeIds = [],
+  activeVersionName
 }) => {
   const [isListening, setIsListening] = useState(false);
   const [activeSpeechInfo, setActiveSpeechInfo] = useState<string>('');
@@ -147,13 +149,23 @@ export const Header: React.FC<HeaderProps> = ({
             <Radio className="w-5 h-5 text-slate-950 font-bold" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
                 Briefing<span className="text-emerald-400">AI</span>
               </h1>
               <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 Oficial & Curado
               </span>
+              {activeVersionName && (
+                <button
+                  onClick={onOpenSaveVersionModal}
+                  title="Perfil de versión activo. Haz clic para cambiar o actualizar."
+                  className="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 transition flex items-center gap-1 cursor-pointer"
+                >
+                  <Bookmark className="w-3 h-3 text-indigo-400" />
+                  <span>Versión: <span className="text-white font-mono normal-case">{activeVersionName}</span></span>
+                </button>
+              )}
             </div>
             <p className="text-xs text-slate-400">
               Asistente de noticias por voz con seguimiento de etiquetas

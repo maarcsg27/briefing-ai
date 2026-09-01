@@ -259,6 +259,12 @@ export const App: React.FC = () => {
 
   // Estado para Modal de Guardar Versión / Perfil de Configuración
   const [isSaveVersionModalOpen, setIsSaveVersionModalOpen] = useState(false);
+  const [activeVersionName, setActiveVersionName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const info = storageService.getActiveVersionInfo();
+    setActiveVersionName(info ? info.name : null);
+  }, [isSaveVersionModalOpen]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
@@ -273,6 +279,7 @@ export const App: React.FC = () => {
         scopes={scopes}
         preferencesMap={preferencesMap}
         visibleScopeIds={visibleScopeIds}
+        activeVersionName={activeVersionName}
       />
 
       {/* Contenedor Principal Adaptativo */}
@@ -471,6 +478,7 @@ export const App: React.FC = () => {
           if (ver.scopes && ver.scopes.length > 0) {
             setScopes(ver.scopes);
           }
+          setActiveVersionName(ver.name);
         }}
       />
     </div>

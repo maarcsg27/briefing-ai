@@ -453,6 +453,28 @@ export const storageService = {
   },
 
   // --- GESTIÓN DE VERSIONES Y PERFILES DE CONFIGURACIÓN DE LA APP ---
+  getActiveVersionInfo(): { id: string; name: string } | null {
+    try {
+      const raw = localStorage.getItem('briefing_ai_active_version');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  },
+
+  setActiveVersionInfo(id: string, name: string): void {
+    try {
+      localStorage.setItem('briefing_ai_active_version', JSON.stringify({ id, name }));
+    } catch (e) {
+      console.error('Error saving active version info:', e);
+    }
+  },
+
+  clearActiveVersionInfo(): void {
+    try {
+      localStorage.removeItem('briefing_ai_active_version');
+    } catch {}
+  },
+
   getConfigVersions(): ConfigVersion[] {
     try {
       const raw = localStorage.getItem('briefing_ai_config_versions_v1');
@@ -481,15 +503,49 @@ export const storageService = {
     const updated = [newVersion, ...versions];
     try {
       localStorage.setItem('briefing_ai_config_versions_v1', JSON.stringify(updated));
+      this.setActiveVersionInfo(newVersion.id, newVersion.name);
     } catch (e) {
       console.error('Error saving config version:', e);
     }
     return newVersion;
   },
 
+  updateConfigVersion(
+    versionId: string,
+    visibleScopeIds: string[],
+    preferencesMap: Record<string, ScopePreferences>,
+    scopes: ScopeDefinition[]
+  ): ConfigVersion | null {
+    const versions = this.getConfigVersions();
+    const idx = versions.findIndex((v) => v.id === versionId);
+    if (idx === -1) return null;
+
+    const existing = versions[idx];
+    const updatedVer: ConfigVersion = {
+      ...existing,
+      createdAt: new Date().toISOString(),
+      visibleScopeIds,
+      preferencesMap,
+      scopes,
+    };
+
+    versions[idx] = updatedVer;
+    try {
+      localStorage.setItem('briefing_ai_config_versions_v1', JSON.stringify(versions));
+      this.setActiveVersionInfo(updatedVer.id, updatedVer.name);
+    } catch (e) {
+      console.error('Error updating config version:', e);
+    }
+    return updatedVer;
+  },
+
   deleteConfigVersion(versionId: string): ConfigVersion[] {
     const versions = this.getConfigVersions();
     const updated = versions.filter((v) => v.id !== versionId);
+    const active = this.getActiveVersionInfo();
+    if (active && active.id === versionId) {
+      this.clearActiveVersionInfo();
+    }
     try {
       localStorage.setItem('briefing_ai_config_versions_v1', JSON.stringify(updated));
     } catch (e) {
@@ -509,6 +565,7 @@ export const storageService = {
       if (version.scopes && version.scopes.length > 0) {
         this.saveAllScopes(version.scopes);
       }
+      this.setActiveVersionInfo(version.id, version.name);
     } catch (e) {
       console.error('Error loading config version:', e);
     }
