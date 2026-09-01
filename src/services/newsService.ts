@@ -499,7 +499,49 @@ export const newsService = {
     scopeName: string,
     onProgress?: (msg: string) => void
   ): Promise<BriefingResult> {
-    // Intentar síntesis por IA si Gemini API Key está disponible
+    // --- 1. INTENTO DE CURACIÓN SERVERLESS (SIN CORS) EN VERCEL ---
+    try {
+      if (onProgress) onProgress('Consultando servidor backend serverless para rastreo sin CORS...');
+      const serverlessRes = await fetch('/api/curate-news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scopeId,
+          scopeName,
+          tags: preferences.tags || [],
+          sources: preferences.sources || [],
+          bannedKeywords: preferences.bannedKeywords || [],
+          maxLimit: preferences.maxNewsLimit || 5,
+          apiKey: geminiService.getApiKey(),
+          country: preferences.country || 'España',
+          geographicScope: preferences.geographicScope || 'nacional',
+        }),
+        signal: AbortSignal.timeout(18000),
+      });
+
+      if (serverlessRes.ok) {
+        const data = await serverlessRes.json();
+        if (data.success && Array.isArray(data.articles) && data.articles.length > 0) {
+          return {
+            id: `briefing-serverless-${Date.now()}`,
+            scopeId,
+            scopeName,
+            timestamp: data.timestamp || new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+            audioScript: data.audioScript || `Síntesis informativa de ${scopeName}.`,
+            summaryBulletPoints: data.summaryBulletPoints || data.articles.map((a: any) => a.summary),
+            articles: data.articles,
+            matchedTagsCount: data.articles.filter((a: any) => (a.matchedTags || []).length > 0).length,
+            totalArticlesAnalyzed: data.totalAnalyzed || data.articles.length,
+            isExhaustive24h: true,
+            lastSearchDate: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+          };
+        }
+      }
+    } catch (serverlessErr) {
+      console.warn('[newsService] Serverless function no disponible o en fallback local, usando motor cliente:', serverlessErr);
+    }
+
+    // Intentar síntesis por IA en cliente si Gemini API Key está disponible
     if (geminiService.hasValidKey()) {
       try {
         const allScopes = storageService.getAllScopes();
