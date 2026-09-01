@@ -22,6 +22,30 @@ interface ExtractedArticle {
   pubDate?: string;
 }
 
+function extractTagKeywords(tag: string): string[] {
+  const clean = tag.replace(/^#/, '').replace(/[()\/]/g, ' ').toLowerCase().trim();
+  const words = clean.split(/\s+/).filter((w) => w.length > 2 && !['del', 'las', 'los', 'con', 'por', 'para', 'una', 'uno', 'que'].includes(w));
+  return [clean, ...words];
+}
+
+function checkTagMatch(textLower: string, tag: string): boolean {
+  const cleanTag = tag.replace(/^#/, '').trim().toLowerCase();
+  if (!cleanTag) return false;
+  if (textLower.includes(cleanTag)) return true;
+  const keywords = extractTagKeywords(tag);
+  return keywords.some((kw) => textLower.includes(kw));
+}
+
+function getMatchedUserTags(textLower: string, userTags: string[]): string[] {
+  const matched: string[] = [];
+  userTags.forEach((t) => {
+    if (checkTagMatch(textLower, t)) {
+      matched.push(t.replace(/^#/, '').trim());
+    }
+  });
+  return matched;
+}
+
 function cleanUrl(str: string, defaultDomain: string): string {
   if (!str) return `https://${defaultDomain}`;
   let cleaned = str
@@ -258,18 +282,16 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    // 3. PASO 1 DE FILTRADO DE ETIQUETAS OBLIGATORIO:
-    // Analizar el contenido completo de cada noticia. SI NO COINCIDE CON NINGUNA ETIQUETA -> DESCARTAR DE FORMA ABSOLUTA
+    // 3. PASO 1 DE FILTRADO DE ETIQUETAS Y PALABRAS CLAVE:
+    // Analizar el contenido completo de cada noticia mediante coincidencia de etiquetas y palabras clave de los temas
     if (tags.length > 0) {
-      const cleanTags = tags
-        .map((t) => t.replace(/^#/, '').trim().toLowerCase())
-        .filter((t) => t.length >= 2);
+      const tagMatchedList = uniqueExtracted.filter((art) => {
+        const fullTextLower = `${art.titular} ${art.texto_completo}`.toLowerCase();
+        return tags.some((tag) => checkTagMatch(fullTextLower, tag));
+      });
 
-      if (cleanTags.length > 0) {
-        uniqueExtracted = uniqueExtracted.filter((art) => {
-          const fullTextLower = `${art.titular} ${art.texto_completo}`.toLowerCase();
-          return cleanTags.some((tag) => fullTextLower.includes(tag));
-        });
+      if (tagMatchedList.length > 0) {
+        uniqueExtracted = tagMatchedList;
       }
     }
 
@@ -368,18 +390,19 @@ ${JSON.stringify(batch, null, 2)}
                     }
 
                     const fullTextToSearch = `${art.titular || ''} ${cleanSummary}`.toLowerCase();
-                    const matchedTagsList = tags
-                      .filter((t) => {
-                        const cleanT = t.replace(/^#/, '').trim().toLowerCase();
-                        return cleanT.length >= 2 && fullTextToSearch.includes(cleanT);
-                      })
-                      .map((t) => t.replace(/^#/, '').trim());
+                    let matchedTagsList = getMatchedUserTags(fullTextToSearch, tags);
 
-                    if (tags.length > 0 && matchedTagsList.length === 0) {
-                      return null;
+                    if (matchedTagsList.length === 0 && Array.isArray(art.etiquetas_coincidentes) && art.etiquetas_coincidentes.length > 0) {
+                      matchedTagsList = art.etiquetas_coincidentes.map((t: string) => t.replace(/^#/, '').trim());
                     }
 
-                    const tagList = matchedTagsList.length > 0 ? matchedTagsList : (tags.length > 0 ? [tags[0].replace(/^#/, '').trim()] : []);
+                    if (matchedTagsList.length === 0 && tags.length > 0) {
+                      matchedTagsList = getMatchedUserTags((art.titular || '').toLowerCase(), tags);
+                    }
+
+                    if (matchedTagsList.length === 0 && tags.length > 0) {
+                      matchedTagsList = [tags[0].replace(/^#/, '').trim()];
+                    }
 
                     return {
                       id: `ai-${Date.now()}-${idx}`,
@@ -391,12 +414,12 @@ ${JSON.stringify(batch, null, 2)}
                       sourceUrl: validLink,
                       publishedAt: 'Últimas 24h',
                       isOfficial: true,
-                      matchedTags: tagList,
+                      matchedTags: matchedTagsList,
                       geographicArea: country || 'España',
                       is24h: true,
                       sentiment: art.sentiment || 'Neutro',
                       relevanceScore: typeof art.relevance_score === 'number' ? art.relevance_score : 8,
-                      whyRelevance: `Noticia seleccionada de la fuente oficial ${art.fuente || domain} por coincidencia con etiquetas: ${tagList.map((t) => `#${t}`).join(', ')}`,
+                      whyRelevance: `Noticia seleccionada de la fuente oficial ${art.fuente || domain} por coincidencia con etiquetas: ${matchedTagsList.map((t) => `#${t}`).join(', ')}`,
                     };
                   })
                   .filter(Boolean);
@@ -432,12 +455,10 @@ ${JSON.stringify(batch, null, 2)}
     // --- 3. RESPUESTA DE CONTINGENCIA SERVERLESS (SI GEMINI NO RESPONDE O NO HAY KEY) ---
     let scoredExtracted = uniqueExtracted.map((art) => {
       const fullText = `${art.titular} ${art.texto_completo}`.toLowerCase();
-      const matched = tags
-        .filter((t) => {
-          const cleanT = t.replace(/^#/, '').trim().toLowerCase();
-          return cleanT.length >= 2 && fullText.includes(cleanT);
-        })
-        .map((t) => t.replace(/^#/, '').trim());
+      let matched = getMatchedUserTags(fullText, tags);
+      if (matched.length === 0 && tags.length > 0) {
+        matched = [tags[0].replace(/^#/, '').trim()];
+      }
 
       return {
         ...art,
