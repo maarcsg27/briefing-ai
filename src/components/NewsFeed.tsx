@@ -136,18 +136,18 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
                     )}
                   </div>
 
-                  {/* Etiquetas coincidentes */}
-                  {hasMatchedTags && (
-                    <div className="flex items-center gap-1.5 flex-wrap mb-3.5">
-                      <span className="text-[11px] text-emerald-400 flex items-center gap-1">
-                        <Tag className="w-3 h-3" /> Coincide con:
+                  {/* Etiquetas coincidentes de la Temática */}
+                  {article.matchedTags && article.matchedTags.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap mb-3.5 bg-emerald-950/30 p-2.5 rounded-xl border border-emerald-500/30">
+                      <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+                        <Tag className="w-3.5 h-3.5" /> Etiquetas Coincidentes de la Temática:
                       </span>
                       {article.matchedTags.map((tag) => (
                         <span
                           key={tag}
-                          className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                          className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                         >
-                          #{tag}
+                          #{tag.replace(/^#/, '')}
                         </span>
                       ))}
                     </div>

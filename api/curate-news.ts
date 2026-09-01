@@ -340,9 +340,26 @@ ${JSON.stringify(batch, null, 2)}
                     if (art.enlace) domain = new URL(art.enlace).hostname.replace(/^www\./, '');
                   } catch {}
 
+                  const validLink = cleanUrl(art.enlace, domain);
                   let cleanSummary = cleanHtmlTags(art.resumen || '');
                   if (cleanSummary.length < 40) {
                     cleanSummary = `${art.titular}. Noticia verificada publicada por ${art.fuente || domain} con las claves e información de ${scopeName}.`;
+                  }
+
+                  let matchedTagsList: string[] = Array.isArray(art.etiquetas_coincidentes) 
+                    ? art.etiquetas_coincidentes.map((t: string) => t.replace(/^#/, '').trim()) 
+                    : [];
+                  
+                  if (matchedTagsList.length === 0 && tags.length > 0) {
+                    const fullTextToSearch = `${art.titular || ''} ${cleanSummary}`.toLowerCase();
+                    matchedTagsList = tags.filter((t) => {
+                      const cleanT = t.replace(/^#/, '').trim().toLowerCase();
+                      return cleanT.length > 2 && fullTextToSearch.includes(cleanT);
+                    });
+                  }
+
+                  if (matchedTagsList.length === 0 && tags.length > 0) {
+                    matchedTagsList = [tags[0].replace(/^#/, '').trim()];
                   }
 
                   return {
@@ -352,15 +369,15 @@ ${JSON.stringify(batch, null, 2)}
                     contentSnippet: cleanSummary,
                     source: cleanHtmlTags(art.fuente || domain),
                     sourceDomain: domain,
-                    sourceUrl: art.enlace || '#',
+                    sourceUrl: validLink,
                     publishedAt: 'Últimas 24h',
                     isOfficial: true,
-                    matchedTags: Array.isArray(art.etiquetas_coincidentes) ? art.etiquetas_coincidentes : tags.slice(0, 1),
+                    matchedTags: matchedTagsList,
                     geographicArea: country || 'España',
                     is24h: true,
                     sentiment: art.sentiment || 'Neutro',
                     relevanceScore: typeof art.relevance_score === 'number' ? art.relevance_score : 8,
-                    whyRelevance: `Coincide con las etiquetas: ${(art.etiquetas_coincidentes || tags).join(', ')}`,
+                    whyRelevance: `Noticia seleccionada de la fuente oficial ${art.fuente || domain} por coincidencia con etiquetas: ${matchedTagsList.map((t) => `#${t}`).join(', ')}`,
                   };
                 });
 
@@ -418,6 +435,8 @@ ${JSON.stringify(batch, null, 2)}
         cleanSummary = `${art.titular}. Cobertura completa publicada por ${art.fuente} detallando los hechos clave e impacto en ${scopeName}.`;
       }
 
+      const tagsToShow = art.matchedTags && art.matchedTags.length > 0 ? art.matchedTags : (tags.length > 0 ? [tags[0]] : []);
+
       return {
         id: `fallback-${Date.now()}-${idx}`,
         title: art.titular,
@@ -428,10 +447,10 @@ ${JSON.stringify(batch, null, 2)}
         sourceUrl: art.enlace,
         publishedAt: 'Últimas 24h',
         isOfficial: true,
-        matchedTags: art.matchedTags,
+        matchedTags: tagsToShow.map((t) => t.replace(/^#/, '').trim()),
         geographicArea: country || 'España',
         is24h: true,
-        whyRelevance: `Coincide con las etiquetas de ${scopeName}.`,
+        whyRelevance: `Noticia seleccionada de la fuente oficial ${art.fuente} por coincidencia con etiquetas: ${tagsToShow.map((t) => `#${t.replace(/^#/, '').trim()}`).join(', ')}`,
       };
     });
 
