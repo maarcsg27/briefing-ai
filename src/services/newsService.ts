@@ -679,29 +679,32 @@ export const newsService = {
     }
 
     let scoredArticles = uniqueArticles.map((art) => {
+      const titleLower = art.title.toLowerCase();
       const fullText = `${art.title} ${art.summary} ${art.contentSnippet}`.toLowerCase();
       
       const matched = userTags.filter((tag) => {
-        const tLower = tag.toLowerCase();
-        return fullText.includes(tLower);
+        const cleanT = tag.replace(/^#/, '').trim().toLowerCase();
+        return cleanT.length > 2 && (titleLower.includes(cleanT) || fullText.includes(cleanT));
       });
 
-      let score = matched.length * 20 + (art.isOfficial ? 5 : 0);
+      let score = matched.length * 30 + (art.isOfficial ? 5 : 0);
       matched.forEach((t) => {
-        if (art.title.toLowerCase().includes(t.toLowerCase())) {
-          score += 10;
+        const cleanT = t.replace(/^#/, '').trim().toLowerCase();
+        if (titleLower.includes(cleanT)) {
+          score += 20; // Puntuación extra por coincidir en el titular
         }
       });
 
       return {
         ...art,
-        matchedTags: matched,
+        matchedTags: matched.map((t) => t.replace(/^#/, '').trim()),
         score,
         is24h: true,
       };
     });
 
-    // Si el usuario tiene etiquetas configuradas, filtrar estrictamente solo las noticias que coincidan con sus etiquetas
+    // PASO 1 DE FILTRADO POR TITULAR Y ETIQUETAS:
+    // Si el usuario tiene etiquetas configuradas, descartar absolutamente noticias sin coincidencias en el titular o tema
     if (userTags.length > 0) {
       const tagMatched = scoredArticles.filter((art) => art.matchedTags.length > 0);
       if (tagMatched.length > 0) {

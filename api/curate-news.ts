@@ -258,6 +258,23 @@ export default async function handler(req: any, res: any) {
       });
     }
 
+    // 3. PASO 1 DE FILTRADO POR TITULAR Y ETIQUETAS:
+    // Analizar el titular de cada noticia. Si el titular/contenido NO coincide ni contiene las etiquetas -> DESCARTAR
+    if (tags.length > 0) {
+      const cleanTags = tags.map((t) => t.replace(/^#/, '').trim().toLowerCase()).filter((t) => t.length > 2);
+      if (cleanTags.length > 0) {
+        const titleTagMatches = uniqueExtracted.filter((art) => {
+          const titleLower = art.titular.toLowerCase();
+          const fullTextLower = `${art.titular} ${art.texto_completo}`.toLowerCase();
+          return cleanTags.some((tag) => titleLower.includes(tag) || fullTextLower.includes(tag));
+        });
+
+        if (titleTagMatches.length > 0) {
+          uniqueExtracted = titleTagMatches;
+        }
+      }
+    }
+
     // --- 2. PIPELINE DE CURACIÓN CON GEMINI 2.5 FLASH (SI API KEY ESTÁ ACTIVA) ---
     if (apiKey && apiKey.length > 10 && uniqueExtracted.length > 0) {
       try {
@@ -276,11 +293,13 @@ A continuación, recibirás dos bloques de información:
 1. [PREFERENCIAS_DEL_USUARIO]: Las categorías y etiquetas (tags) específicas que le interesan al usuario.
 2. [NOTICIAS_EXTRAIDAS]: Una lista de artículos obtenidos mediante web scraping, que incluye el Titular, el Enlace y el Texto Completo de cada noticia.
 
-TUS INSTRUCCIONES:
-1. FILTRADO: Analiza el texto completo de cada noticia en [NOTICIAS_EXTRAIDAS]. Compara el contenido con las etiquetas en [PREFERENCIAS_DEL_USUARIO]. Descarta cualquier noticia que no tenga una relación directa, clara y sustancial con al menos una de las etiquetas del usuario.
-2. RESUMEN: Para las noticias que pasen el filtro, lee el contenido completo y redacta un resumen de exactamente un párrafo (máximo 4-5 oraciones). El resumen debe ser objetivo, directo al grano y contener la información de mayor valor de la noticia. No uses frases introductorias como "Este artículo trata sobre..." o "En esta noticia...".
-3. CLASIFICACIÓN ADICIONAL: Asigna el sentimiento general ("Positivo", "Neutro", "Negativo") y una puntuación de impacto/relevancia ("relevance_score": entero de 1 a 10).
-4. FORMATO DE SALIDA: Debes devolver la información EXCLUSIVAMENTE en formato JSON válido, sin texto adicional en formato Markdown.
+TUS INSTRUCCIONES OBLIGATORIAS:
+1. PASO 1 - ANÁLISIS DEL TITULAR: Analiza el TITULAR de cada noticia en [NOTICIAS_EXTRAIDAS]. Descarta CUALQUIER NOTICIA cuyo titular o tema central no contenga o no haga referencia directa, clara y sustancial a al menos una de las etiquetas del usuario en [PREFERENCIAS_DEL_USUARIO]. Si no coincide con las etiquetas, DESCÁRTALA.
+2. PASO 2 - ANÁLISIS Y RESUMEN DEL CONTENIDO: Para las noticias que pasaron el filtro del titular, lee el contenido completo y redacta un resumen de exactamente un párrafo (máximo 4-5 oraciones / 3-5 líneas). El resumen debe ser objetivo, directo al grano y contener la información de mayor valor de la noticia. NO incluyas etiquetas HTML ni URLs crudas dentro del texto del resumen.
+3. PALABRAS VETADAS: Descarta cualquier noticia que contenga palabras o temas vetados.
+4. ETIQUETAS COINCIDENTES: Devuelve en "etiquetas_coincidentes" el listado exacto de etiquetas del usuario que coinciden directamente con la noticia.
+5. CLASIFICACIÓN ADICIONAL: Asigna el sentimiento general ("Positivo", "Neutro", "Negativo") y una puntuación de impacto/relevancia ("relevance_score": entero de 1 a 10).
+6. FORMATO DE SALIDA: Debes devolver la información EXCLUSIVAMENTE en formato JSON válido, sin texto adicional en formato Markdown.
 
 La estructura del JSON debe ser exactamente esta:
 {
