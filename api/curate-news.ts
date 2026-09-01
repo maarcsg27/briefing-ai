@@ -105,6 +105,8 @@ function extractRssItems(xmlText: string, defaultSource: string, defaultDomain: 
   return items;
 }
 
+declare const process: { env?: Record<string, string | undefined> } | undefined;
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -136,10 +138,11 @@ export default async function handler(req: any, res: any) {
       geographicScope = 'nacional',
     } = body;
 
+    const envMap = (typeof process !== 'undefined' && process?.env) ? process.env : {};
     const apiKey =
       clientApiKey ||
-      process.env.GEMINI_API_KEY ||
-      process.env.VITE_GEMINI_API_KEY ||
+      envMap.GEMINI_API_KEY ||
+      envMap.VITE_GEMINI_API_KEY ||
       '';
 
     const enabledSources = (sources || []).filter((s) => s.enabled);
