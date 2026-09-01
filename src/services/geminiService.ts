@@ -58,33 +58,34 @@ export const geminiService = {
     const maxLimit = preferences.maxNewsLimit || 5;
 
     const promptText = `
-Actúa como un motor inteligente de curación y análisis de medios. Tu tarea es procesar las fuentes registradas en la biblioteca para la categoría "${scope.name}", evaluar los contenidos recientes de las ÚLTIMAS 24 HORAS y seleccionar únicamente los artículos más relevantes que cumplan con los criterios y filtros definidos a continuación.
+Actúa como un motor inteligente de curación y análisis profundo de medios. Tu tarea es ejecutar estrictamente el siguiente RECORRIDO DE ANÁLISIS EN 4 PASOS para la categoría "${scope.name}":
 
-1. REGLAS DE INGESTA Y FILTRADO ESTRICTO:
-- Fuentes a consultar: Analiza únicamente las fuentes activas configuradas en la biblioteca del usuario para "${scope.name}":
+PASO 1: REPASO DE TITULARES Y FUENTES REGISTRADAS (ÚLTIMAS 24 HORAS)
+Inspecciona las fuentes de información activas configuradas en la biblioteca del usuario para la categoría "${scope.name}":
 ${sourcesStr || '- Medios acreditados del sector'}
+Analiza todos los titulares de noticias y artículos publicados exclusivamente en las ÚLTIMAS 24 HORAS.
 
-- Criterios de inclusión OBLIGATORIOS (Etiquetas clave): CADA NOTICIA SELECCIONADA DEBE HACER REFERENCIA DIRECCIÓN O CONTENER AL MENOS UNA DE LAS ETIQUETAS CLAVE: [${tagsStr}].
+PASO 2: FILTRADO POR COINCIDENCIA DE ETIQUETAS EN LA CATEGORÍA
+De todos los titulares y artículos encontrados, filtra y selecciona ÚNICAMENTE aquellos que contengan o estén relacionados directamente con las etiquetas configuradas en la categoría: [${tagsStr}].
+Descarta de forma automática cualquier contenido engañoso o palabras vetadas: [${bannedStr}].
 
-- Criterios de exclusión (Palabras y temas vetados): Descarta de forma automática cualquier artículo que contenga o trate sobre: [${bannedStr}]
+PASO 3: ANÁLISIS PROFUNDO ENLACE POR ENLACE (RESUMEN DETALLADO)
+Para cada una de las noticias filtradas, accede a la URL directa del artículo y aplica estrictamente la siguiente instrucción de análisis:
+"Entra en esta noticia y dime de qué habla. Hazme un resumen detallado del contenido de la noticia/artículo."
+(El resumen de cada noticia debe tener una extensión estricta de 3 a 5 líneas desglosando los hechos clave acontecidos, los actores o protagonistas involucrados y la conclusión/impacto principal).
 
-- Límite de resultados: Devuelve un total estricto de ${maxLimit} noticias de las últimas 24 horas que correspondan a las fuentes y etiquetas indicadas, ordenadas de mayor a menor relevancia o impacto.
+PASO 4: RANKING Y SALIDA DE NOTICIAS CON MÁS COINCIDENCIAS (HASTA ${maxLimit})
+Devuelve un total estricto de hasta ${maxLimit} noticias que tengan la mayor coincidencia e impacto con las etiquetas configuradas en la categoría, ordenadas de mayor a menor relevancia.
 
-2. ESTRUCTURA Y FICHA REQUERIDA PARA CADA NOTICIA SELECCIONADA:
-- "title": Titular claro y conciso (sin repetir la fuente en el título).
+ESTRUCTURA DE CADA NOTICIA DEVUELTA:
+- "title": Titular limpio del artículo.
 - "source": Nombre de la fuente oficial o medio.
-- "sourceDomain": Dominio web exacto de la fuente de la biblioteca (ej. "${enabledSourcesList[0]?.domain || 'cop.es'}").
-- "sourceUrl": URL directa al artículo original en la fuente.
-- "publishedAt": Fecha o tiempo relativo de publicación (últimas 24h).
-- "matchedTags": Array con la etiqueta o etiquetas de la lista del usuario con las que coincide la noticia (ej. ["${preferences.tags[0] || 'Actualidad'}"]).
-- "summary": Resumen ejecutivo de 3 a 5 líneas con los hechos clave: qué pasó, actores involucrados y consecuencias principales.
-- "whyRelevance": Una frase explicando por qué cumple con los criterios de interés del usuario y las etiquetas seleccionadas.
-
-3. RESTRICCIONES OBLIGATORIAS:
-- No incluyas noticias duplicadas sobre el mismo hecho; si varias fuentes lo cubren, selecciona la más completa o reciente.
-- No agregues texto introductorio, introducciones meta ni conclusiones genéricas.
-- "audioScript": Un guion fluido en español para locución por voz que resuma las noticias seleccionadas.
-- "summaryBulletPoints": Puntos sintéticos por noticia con formato [#Etiqueta] Hecho clave e impacto.
+- "sourceDomain": Dominio web exacto de la fuente de la biblioteca (ej. "${enabledSourcesList[0]?.domain || 'marca.com'}").
+- "sourceUrl": URL directa al artículo analizado.
+- "publishedAt": Tiempo de publicación (últimas 24h).
+- "matchedTags": Array con las etiquetas con las que coincide la noticia (ej. ["${preferences.tags[0] || 'Actualidad'}"]).
+- "summary": Resumen detallado de 3 a 5 líneas explicando de qué habla la noticia (qué ocurrió, quiénes intervienen y consecuencia principal).
+- "whyRelevance": Una frase explicando por qué es relevante según las etiquetas del usuario.
 
 FORMATO DE RESPUESTA REQUERIDO:
 Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato markdown ni texto extra:
@@ -93,8 +94,8 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato 
     {
       "id": "ai-1",
       "title": "Titular claro y conciso",
-      "summary": "Resumen ejecutivo de 3 a 5 líneas desglosando qué pasó, actores involucrados y consecuencias principales...",
-      "whyRelevance": "Explicación en 1 frase de por qué es relevante según los criterios y etiquetas del usuario.",
+      "summary": "Resumen detallado de 3 a 5 líneas respondiendo de qué habla la noticia, qué ocurrió, quiénes intervienen y el impacto clave...",
+      "whyRelevance": "Explicación en 1 frase de por qué es relevante según las etiquetas del usuario.",
       "contentSnippet": "Extracto explicativo de soporte.",
       "source": "Nombre del Medio",
       "sourceDomain": "dominio.com",
