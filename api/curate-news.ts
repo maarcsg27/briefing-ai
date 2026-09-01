@@ -138,10 +138,13 @@ export default async function handler(req: any, res: any) {
 
     if (enabledSources.length > 0) {
       enabledSources.forEach((src) => {
+        const cleanDomain = src.domain.toLowerCase().replace(/^www\./, '');
+        
+        // 1. Petición directa a Google News site query para la fuente
         fetchTasks.push(
           (async () => {
             try {
-              const query = `${scopeName} site:${src.domain} when:24h`;
+              const query = `site:${cleanDomain} when:24h`;
               const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
               const response = await fetch(rssUrl, {
                 headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BriefingAI-Worker/2.0)' },
@@ -149,7 +152,7 @@ export default async function handler(req: any, res: any) {
               });
               if (response.ok) {
                 const xml = await response.text();
-                const items = extractRssItems(xml, src.name, src.domain);
+                const items = extractRssItems(xml, src.name, cleanDomain);
                 extractedArticles.push(...items);
               }
             } catch (err) {
@@ -157,32 +160,32 @@ export default async function handler(req: any, res: any) {
             }
           })()
         );
-      });
 
-      // Búsqueda cruzada por cada una de las etiquetas del usuario para garantizar hasta 20 noticias
-      if (tags.length > 0) {
-        tags.slice(0, 10).forEach((tag) => {
-          fetchTasks.push(
-            (async () => {
-              try {
-                const cleanTag = tag.replace(/^#/, '').trim();
-                if (!cleanTag || cleanTag.length < 3) return;
-                const query = `${cleanTag} when:24h`;
-                const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
-                const response = await fetch(rssUrl, {
-                  headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BriefingAI-Worker/2.0)' },
-                  signal: AbortSignal.timeout(5000),
-                });
-                if (response.ok) {
-                  const xml = await response.text();
-                  const items = extractRssItems(xml, 'Medio Verificado', 'noticias.es');
-                  extractedArticles.push(...items);
-                }
-              } catch {}
-            })()
-          );
-        });
-      }
+        // 2. Búsqueda combinada de etiquetas dentro de la fuente de la biblioteca
+        if (tags.length > 0) {
+          tags.slice(0, 5).forEach((tag) => {
+            const cleanTag = tag.replace(/^#/, '').trim();
+            if (!cleanTag) return;
+            fetchTasks.push(
+              (async () => {
+                try {
+                  const query = `${cleanTag} site:${cleanDomain} when:24h`;
+                  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
+                  const response = await fetch(rssUrl, {
+                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BriefingAI-Worker/2.0)' },
+                    signal: AbortSignal.timeout(5000),
+                  });
+                  if (response.ok) {
+                    const xml = await response.text();
+                    const items = extractRssItems(xml, src.name, cleanDomain);
+                    extractedArticles.push(...items);
+                  }
+                } catch {}
+              })()
+            );
+          });
+        }
+      });
     } else {
       fetchTasks.push(
         (async () => {
@@ -218,7 +221,17 @@ export default async function handler(req: any, res: any) {
       }
     });
 
-    // Filtrar por palabras vetadas
+    // 1. FILTRADO ESTRICTO DE FUENTES: Mantener ÚNICAMENTE noticias pertenecientes a la biblioteca del usuario
+    if (enabledSources.length > 0) {
+      const enabledDomains = enabledSources.map((s) => s.domain.toLowerCase().replace(/^www\./, ''));
+      uniqueExtracted = uniqueExtracted.filter((art) => {
+        const domainClean = (art.dominio || '').toLowerCase().replace(/^www\./, '');
+        const urlClean = (art.enlace || '').toLowerCase();
+        return enabledDomains.some((d) => domainClean.includes(d) || urlClean.includes(d));
+      });
+    }
+
+    // 2. FILTRADO ESTRICTO DE PALABRAS VETADAS (Blacklist)
     if (bannedKeywords.length > 0) {
       uniqueExtracted = uniqueExtracted.filter((art) => {
         const text = `${art.titular} ${art.texto_completo}`.toLowerCase();
