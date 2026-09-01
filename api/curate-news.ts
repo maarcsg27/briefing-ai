@@ -325,7 +325,26 @@ ${JSON.stringify(batch, null, 2)}
     }
 
     // --- 3. RESPUESTA DE CONTINGENCIA SERVERLESS (SI GEMINI NO RESPONDE O NO HAY KEY) ---
-    const fallbackArticles = uniqueExtracted.slice(0, maxLimit).map((art, idx) => ({
+    let scoredExtracted = uniqueExtracted.map((art) => {
+      const fullText = `${art.titular} ${art.texto_completo}`.toLowerCase();
+      const matched = tags.filter((t) => t.trim() && fullText.includes(t.toLowerCase().trim()));
+      return {
+        ...art,
+        matchedTags: matched,
+        score: matched.length * 20,
+      };
+    });
+
+    if (tags.length > 0) {
+      const tagMatchedOnly = scoredExtracted.filter((art) => art.matchedTags.length > 0);
+      if (tagMatchedOnly.length > 0) {
+        scoredExtracted = tagMatchedOnly;
+      }
+    }
+
+    scoredExtracted.sort((a, b) => b.score - a.score);
+
+    const fallbackArticles = scoredExtracted.slice(0, maxLimit).map((art, idx) => ({
       id: `fallback-${Date.now()}-${idx}`,
       title: art.titular,
       summary: art.texto_completo.length > 250 ? art.texto_completo.substring(0, 247) + '...' : art.texto_completo,
@@ -335,10 +354,10 @@ ${JSON.stringify(batch, null, 2)}
       sourceUrl: art.enlace,
       publishedAt: 'Últimas 24h',
       isOfficial: true,
-      matchedTags: tags.filter((t) => `${art.titular} ${art.texto_completo}`.toLowerCase().includes(t.toLowerCase())),
+      matchedTags: art.matchedTags,
       geographicArea: country || 'España',
       is24h: true,
-      whyRelevance: 'Noticia verificada de tus fuentes oficiales.',
+      whyRelevance: `Coincide con las etiquetas de ${scopeName}.`,
     }));
 
     return res.status(200).json({
