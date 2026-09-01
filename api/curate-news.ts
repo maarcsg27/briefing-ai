@@ -111,14 +111,17 @@ function extractRssItems(xmlText: string, defaultSource: string, defaultDomain: 
       let domain = defaultDomain;
       try {
         if (cleanLink && cleanLink.startsWith('http')) {
-          domain = new URL(cleanLink).hostname.replace(/^www\./, '');
+          const parsedHost = new URL(cleanLink).hostname.replace(/^www\./, '');
+          if (!parsedHost.includes('google.')) {
+            domain = parsedHost;
+          }
         }
       } catch {}
 
       items.push({
         titular: cleanTitle,
         enlace: cleanLink,
-        fuente: sourceName || domain,
+        fuente: sourceName && !sourceName.toLowerCase().includes('google') ? sourceName : (defaultSource || domain),
         dominio: domain,
         texto_completo: `${cleanTitle}. ${cleanDesc}`.substring(0, 1000),
         pubDate: pubDateMatch ? pubDateMatch[1] : '',
@@ -229,27 +232,55 @@ export default async function handler(req: any, res: any) {
           });
         }
       });
-    } else {
-      fetchTasks.push(
-        (async () => {
-          try {
-            const query = `${scopeName} when:24h`;
-            const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
-            const response = await fetch(rssUrl, {
-              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BriefingAI-Worker/2.0)' },
-              signal: AbortSignal.timeout(5000),
-            });
-            if (response.ok) {
-              const xml = await response.text();
-              const items = extractRssItems(xml, 'Medio Verificado', 'noticias.es');
-              extractedArticles.push(...items);
-            }
-          } catch (err) {
-            console.warn('[Serverless Worker] Error en búsqueda general:', err);
-          }
-        })()
-      );
     }
+
+    // 3. Consultas directas por etiquetas y tema para enriquecer los resultados
+    if (tags.length > 0) {
+      tags.slice(0, 5).forEach((tag) => {
+        const cleanTag = tag.replace(/^#/, '').trim();
+        if (!cleanTag) return;
+        fetchTasks.push(
+          (async () => {
+            try {
+              const query = `${cleanTag} when:24h`;
+              const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
+              const response = await fetch(rssUrl, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BriefingAI-Worker/2.0)' },
+                signal: AbortSignal.timeout(5000),
+              });
+              if (response.ok) {
+                const xml = await response.text();
+                const defaultSrc = enabledSources[0]?.name || 'Prensa Digital';
+                const defaultDom = enabledSources[0]?.domain || 'noticias.es';
+                const items = extractRssItems(xml, defaultSrc, defaultDom);
+                extractedArticles.push(...items);
+              }
+            } catch {}
+          })()
+        );
+      });
+    }
+
+    // 4. Búsqueda de rescate por nombre de la temática si hay pocos candidatos
+    fetchTasks.push(
+      (async () => {
+        try {
+          const query = `${scopeName} when:24h`;
+          const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
+          const response = await fetch(rssUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BriefingAI-Worker/2.0)' },
+            signal: AbortSignal.timeout(5000),
+          });
+          if (response.ok) {
+            const xml = await response.text();
+            const defaultSrc = enabledSources[0]?.name || scopeName;
+            const defaultDom = enabledSources[0]?.domain || 'noticias.es';
+            const items = extractRssItems(xml, defaultSrc, defaultDom);
+            extractedArticles.push(...items);
+          }
+        } catch {}
+      })()
+    );
 
     await Promise.allSettled(fetchTasks);
 
@@ -264,14 +295,18 @@ export default async function handler(req: any, res: any) {
       }
     });
 
-    // 1. FILTRADO ESTRICTO DE FUENTES: Mantener ÚNICAMENTE noticias pertenecientes a la biblioteca del usuario
+    // 1. FILTRADO DE FUENTES
     if (enabledSources.length > 0) {
       const enabledDomains = enabledSources.map((s) => s.domain.toLowerCase().replace(/^www\./, ''));
-      uniqueExtracted = uniqueExtracted.filter((art) => {
+      const matchingSources = uniqueExtracted.filter((art) => {
         const domainClean = (art.dominio || '').toLowerCase().replace(/^www\./, '');
         const urlClean = (art.enlace || '').toLowerCase();
-        return enabledDomains.some((d) => domainClean.includes(d) || urlClean.includes(d));
+        return enabledDomains.some((d) => domainClean.includes(d) || urlClean.includes(d) || art.fuente.toLowerCase().includes(d.split('.')[0]));
       });
+
+      if (matchingSources.length > 0) {
+        uniqueExtracted = matchingSources;
+      }
     }
 
     // 2. FILTRADO ESTRICTO DE PALABRAS VETADAS (Blacklist)
