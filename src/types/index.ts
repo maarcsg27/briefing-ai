@@ -74,6 +74,7 @@ export interface NewsItem {
   geographicArea: string;
   is24h?: boolean;
   score?: number;
+  whyRelevance?: string;
 }
 
 export interface BriefingResult {

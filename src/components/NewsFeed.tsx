@@ -100,17 +100,31 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
                   </div>
 
                   {/* Resumen de lo más importante que se cuenta en la noticia */}
-                  <div className="mb-3.5 bg-slate-950/50 p-3 rounded-xl border border-slate-800/90">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
-                      Resumen de la noticia:
-                    </span>
-                    <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-                      {article.summary || article.contentSnippet}
-                    </p>
+                  <div className="mb-3.5 bg-slate-950/50 p-3 rounded-xl border border-slate-800/90 space-y-2">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
+                        Resumen Ejecutivo (3-5 líneas):
+                      </span>
+                      <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                        {article.summary || article.contentSnippet}
+                      </p>
+                    </div>
+
+                    {/* Por qué es relevante (1 frase de justificación) */}
+                    {article.whyRelevance && (
+                      <div className="pt-2 border-t border-slate-800/80">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-400 block mb-0.5">
+                          Por qué es relevante:
+                        </span>
+                        <p className="text-xs text-indigo-200 italic font-medium">
+                          {article.whyRelevance}
+                        </p>
+                      </div>
+                    )}
 
                     {/* Puntos clave destacados si existen */}
                     {article.keyHighlights && article.keyHighlights.length > 0 && (
-                      <div className="mt-2.5 pt-2 border-t border-slate-800/80 space-y-1">
+                      <div className="pt-2 border-t border-slate-800/80 space-y-1">
                         {article.keyHighlights.map((point, pIdx) => (
                           <div key={pIdx} className="flex items-start gap-2 text-xs text-slate-300">
                             <span className="text-emerald-400 font-bold">•</span>

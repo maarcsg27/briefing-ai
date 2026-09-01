@@ -51,69 +51,63 @@ export const geminiService = {
       .map((s) => `- ${s.name} (Dominio: ${s.domain})`)
       .join('\n');
 
+    const bannedStr = preferences.bannedKeywords && preferences.bannedKeywords.length > 0
+      ? preferences.bannedKeywords.join(', ')
+      : 'rumores, cotilleos, notas patrocinadas, contenido engañoso';
+
     const maxLimit = preferences.maxNewsLimit || 5;
 
     const promptText = `
-Actúa como un analista de medios y investiga las noticias reales publicadas estrictamente en las ÚLTIMAS 24 HORAS (desde la hora actual hacia 24 horas atrás) para la categoría "${scope.name}".
+Actúa como un motor inteligente de curación y análisis de medios. Tu tarea es procesar las fuentes registradas en la biblioteca para la categoría "${scope.name}", evaluar los contenidos recientes de las ÚLTIMAS 24 HORAS y seleccionar únicamente los artículos más relevantes que cumplan con los criterios y filtros definidos a continuación.
 
-DATOS DE CONFIGURACIÓN DEL ÁMBITO:
-- Categoría: ${scope.name}
-- Descripción del ámbito: ${scope.description}
-- Etiquetas prioritarias del usuario: ${tagsStr}
-- Ámbito geográfico: ${preferences.geographicScope} (${preferences.country || 'Global'})
-- Cantidad deseada de noticias: ${maxLimit}
-
-RESTRICCIÓN OBLIGATORIA DE FUENTES Y TIEMPO (ÚLTIMAS 24 HORAS HASTA LA HORA ACTUAL):
-1. ÚNICAMENTE debes buscar e incluir noticias reales publicadas en las ÚLTIMAS 24 HORAS.
-2. TODAS las noticias DEBEN PROVENIR EXCLUSIVAMENTE de una de las siguientes fuentes guardadas en la biblioteca del usuario:
+1. REGLAS DE INGESTA Y FILTRADO:
+- Fuentes a consultar: Analiza únicamente las fuentes activas configuradas en la biblioteca del usuario para "${scope.name}":
 ${sourcesStr || '- Medios acreditados del sector'}
 
-3. Queda totalmente PROHIBIDO utilizar o devolver noticias de fuentes o dominios web ajenos a la lista de la biblioteca arriba especificada.
-4. Para cada noticia, el campo "sourceDomain" DEBE ser el dominio exacto de la fuente de la biblioteca (ej. "${enabledSourcesList[0]?.domain || 'cop.es'}").
+- Criterios de inclusión (Etiquetas prioritarias): Prioriza noticias que aborden los siguientes temas o etiquetas clave: [${tagsStr}]
 
-INSTRUCCIONES ESTRICTAS DE RESUMEN ANALÍTICO BASADO EN EL CONTENIDO:
-1. El resumen ("summary") DEBE tener una extensión estricta de 3 a 5 líneas (entre 50 y 90 palabras).
-2. El resumen DEBE EXPLICAR EL CONTENIDO REAL DE LA NOTICIA. Sintetiza los hechos principales respondiendo a:
-   - QUÉ OCURRIÓ (los hechos concretos y datos reales reportados en la noticia).
-   - QUIÉNES ESTÁN INVOLUCRADOS (organismos, entidades, empresas o personas involucradas).
-   - CUÁL ES EL IMPACTO O CONCLUSIÓN CLAVE.
-3. Mantén un tono neutral, directo y objetivo.
-4. PROHIBIDO GENERAR RESÚMENES GENÉRICOS O USAR FRASES META como "En esta noticia se habla de...", "Esta noticia trata sobre...", "En este artículo se analiza...". Comienza DIRECTAMENTE explicando los hechos y el contenido de la noticia.
+- Criterios de exclusión (Palabras y temas vetados): Descarta de forma automática cualquier artículo que contenga o trate sobre: [${bannedStr}]
 
-ESTRUCTURA DE RESPUESTA PARA CADA NOTICIA (entre 3 y ${maxLimit} noticias de las fuentes de la biblioteca):
-- "title": Titular limpio, profesional y directo. NUNCA incluyas el nombre del medio en el titular.
-- "summary": Explicación analítica objetiva de 3 a 5 líneas que desglose el contenido real de la noticia.
-- "source": Nombre exacto de la fuente de la biblioteca.
-- "sourceDomain": Dominio exacto de la fuente de la biblioteca (ej. "cop.es", "cnmv.es", "xataka.com").
-- "sourceUrl": URL oficial directa de la noticia en la fuente.
-- "matchedTags": Etiquetas coincidentes del usuario.
-- "geographicArea": Zona geográfica.
+- Límite de resultados: Devuelve un total estricto de ${maxLimit} noticias publicadas en las últimas 24 horas, ordenadas de mayor a menor relevancia o impacto.
 
-SECCIONES ADICIONALES:
-- "audioScript": Guion fluido de locución por voz en español que analice de forma profesional y directa el contenido real de los titulares y sus resúmenes de las últimas 24h.
-- "summaryBulletPoints": Puntos clave con formato [#Etiqueta] Explicación directa del hecho principal e impacto real.
+2. ESTRUCTURA Y FICHA REQUERIDA PARA CADA NOTICIA SELECCIONADA:
+- "title": Titular claro y conciso (sin repetir la fuente en el título).
+- "source": Nombre de la fuente oficial o medio.
+- "sourceDomain": Dominio web exacto de la fuente de la biblioteca (ej. "${enabledSourcesList[0]?.domain || 'cop.es'}").
+- "sourceUrl": URL directa al artículo original en la fuente.
+- "publishedAt": Fecha o tiempo relativo de publicación (últimas 24h).
+- "matchedTags": Array con las etiquetas asociadas (ej. ["${preferences.tags[0] || 'Actualidad'}"]).
+- "summary": Resumen ejecutivo de 3 a 5 líneas con los hechos clave: qué pasó, actores involucrados y consecuencias principales.
+- "whyRelevance": Una frase explicando por qué cumple con los criterios de interés del usuario.
+
+3. RESTRICCIONES OBLIGATORIAS:
+- No incluyas noticias duplicadas sobre el mismo hecho; si varias fuentes lo cubren, selecciona la más completa o reciente.
+- No agregues texto introductorio, introducciones meta ni conclusiones genéricas.
+- "audioScript": Un guion fluido en español para locución por voz que resuma las noticias seleccionadas.
+- "summaryBulletPoints": Puntos sintéticos por noticia con formato [#Etiqueta] Hecho clave e impacto.
 
 FORMATO DE RESPUESTA REQUERIDO:
-Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato markdown ni explicaciones adicionales:
+Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato markdown ni texto extra:
 {
   "articles": [
     {
       "id": "ai-1",
-      "title": "Titular limpio y directo",
-      "summary": "Explicación analítica directa de 3 a 5 líneas con hechos principales, involucrados e impacto clave...",
+      "title": "Titular claro y conciso",
+      "summary": "Resumen ejecutivo de 3 a 5 líneas desglosando qué pasó, actores involucrados y consecuencias principales...",
+      "whyRelevance": "Explicación en 1 frase de por qué es relevante según los criterios del usuario.",
       "contentSnippet": "Extracto explicativo de soporte.",
-      "source": "Nombre Fuente",
+      "source": "Nombre del Medio",
       "sourceDomain": "dominio.com",
       "sourceUrl": "https://dominio.com/noticia",
       "publishedAt": "Últimas 24h",
       "isOfficial": true,
-      "matchedTags": ["Tag1"],
+      "matchedTags": ["Tag1", "Tag2"],
       "geographicArea": "Global"
     }
   ],
   "audioScript": "Guion fluido para la locución por voz...",
   "summaryBulletPoints": [
-    "[#Tag1] Hecho principal e impacto clave..."
+    "[#Tag1] Resumen sintético..."
   ]
 }
 `;
@@ -184,6 +178,7 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato 
       matchedTags: Array.isArray(art.matchedTags) ? art.matchedTags : [],
       geographicArea: art.geographicArea || preferences.country || 'Global',
       is24h: true,
+      whyRelevance: art.whyRelevance || '',
     }));
 
     // 1. Filtrar por Palabras Betadas (Blacklist)
