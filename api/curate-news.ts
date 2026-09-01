@@ -131,7 +131,7 @@ export default async function handler(req: any, res: any) {
     const fetchTasks: Promise<void>[] = [];
 
     if (enabledSources.length > 0) {
-      enabledSources.slice(0, 8).forEach((src) => {
+      enabledSources.forEach((src) => {
         fetchTasks.push(
           (async () => {
             try {

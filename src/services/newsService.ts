@@ -569,7 +569,7 @@ export const newsService = {
     const queriesToRun: string[] = [];
 
     if (enabledSources.length > 0) {
-      enabledSources.slice(0, 8).forEach((src) => {
+      enabledSources.forEach((src) => {
         queriesToRun.push(`${scopeName} site:${src.domain}`);
       });
     } else {
@@ -599,7 +599,7 @@ export const newsService = {
       rawArticles.push(...fallback);
     }
 
-    // 1. Filtrar estrictamente por palabras betadas (Blacklist)
+    // 1. Filtrar estrictamente por palabras vetadas (Blacklist)
     const banned = preferences.bannedKeywords || [];
     if (banned.length > 0) {
       rawArticles = rawArticles.filter((art) => {

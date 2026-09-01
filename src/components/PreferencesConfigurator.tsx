@@ -719,17 +719,17 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                   </div>
                 </div>
 
-                {/* APARTADO: PALABRAS BETADAS / EXCLUIDAS */}
+                {/* APARTADO: PALABRAS VETADAS / EXCLUIDAS */}
                 <div className="bg-rose-950/20 p-4 rounded-xl border border-rose-900/40 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <ShieldAlert className="w-4 h-4 text-rose-400" />
                       <label className="text-xs font-bold text-rose-200 uppercase tracking-wider">
-                        Palabras Betadas / Excluidas
+                        Palabras Vetadas / Excluidas
                       </label>
                     </div>
                     <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                      {(editPreferences.bannedKeywords || []).length} betadas
+                      {(editPreferences.bannedKeywords || []).length} vetadas
                     </span>
                   </div>
 
@@ -742,7 +742,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                       type="text"
                       value={bannedTagInput}
                       onChange={(e) => setBannedTagInput(e.target.value)}
-                      placeholder="Añadir palabra o frase a betar (ej. apuestas deportivas)..."
+                      placeholder="Añadir palabra o frase a vetar (ej. apuestas deportivas)..."
                       className="flex-1 bg-slate-900 border border-rose-900/60 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
                     />
                     <button
@@ -751,15 +751,15 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                       className="px-4 py-2 bg-rose-700 hover:bg-rose-600 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shrink-0"
                     >
                       <Plus className="w-4 h-4" />
-                      <span>Betar</span>
+                      <span>Vetar</span>
                     </button>
                   </form>
 
-                  {/* Chips de Palabras Betadas */}
+                  {/* Chips de Palabras Vetadas */}
                   <div className="flex flex-wrap gap-2 pt-1 max-h-36 overflow-y-auto">
                     {(!editPreferences.bannedKeywords || editPreferences.bannedKeywords.length === 0) ? (
                       <span className="text-xs text-slate-500 italic">
-                        No hay palabras betadas configuradas.
+                        No hay palabras vetadas configuradas.
                       </span>
                     ) : (
                       editPreferences.bannedKeywords.map((kw) => (
@@ -772,7 +772,7 @@ export const PreferencesConfigurator: React.FC<ConfiguratorModalProps> = ({
                             type="button"
                             onClick={() => handleRemoveBannedTagFromEdit(kw)}
                             className="hover:text-white transition text-rose-400 ml-1"
-                            title="Eliminar palabra betada"
+                            title="Eliminar palabra vetada"
                           >
                             <X className="w-3 h-3" />
                           </button>

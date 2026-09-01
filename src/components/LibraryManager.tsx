@@ -507,15 +507,15 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
               </div>
             </div>
 
-            {/* SECCIÓN PALABRAS BETADAS / EXCLUIDAS */}
+            {/* SECCIÓN PALABRAS VETADAS / EXCLUIDAS */}
             <div className="pt-3 border-t border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
                   <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Palabras Betadas / Excluidas</span>
+                  <span>Palabras Vetadas / Excluidas</span>
                 </label>
                 <span className="text-[11px] text-rose-400 font-mono font-bold">
-                  {(activePrefs.bannedKeywords || []).length} betadas
+                  {(activePrefs.bannedKeywords || []).length} vetadas
                 </span>
               </div>
 
@@ -536,13 +536,13 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                   className="bg-rose-700 hover:bg-rose-600 text-white rounded-xl px-4 py-2 text-xs font-bold transition flex items-center gap-1 shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Betar</span>
+                  <span>Vetar</span>
                 </button>
               </form>
 
               <div className="flex flex-wrap gap-2">
                 {(!activePrefs.bannedKeywords || activePrefs.bannedKeywords.length === 0) ? (
-                  <p className="text-xs text-slate-500 italic">No hay palabras betadas configuradas aún.</p>
+                  <p className="text-xs text-slate-500 italic">No hay palabras vetadas configuradas aún.</p>
                 ) : (
                   activePrefs.bannedKeywords.map((kw) => (
                     <span
@@ -553,7 +553,7 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
                       <button
                         onClick={() => handleRemoveBannedKeyword(kw)}
                         className="text-rose-400 hover:text-white transition"
-                        title="Eliminar palabra betada"
+                        title="Eliminar palabra vetada"
                       >
                         <X className="w-3 h-3" />
                       </button>
