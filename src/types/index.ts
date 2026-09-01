@@ -75,6 +75,8 @@ export interface NewsItem {
   is24h?: boolean;
   score?: number;
   whyRelevance?: string;
+  sentiment?: 'Positivo' | 'Neutro' | 'Negativo' | string;
+  relevanceScore?: number;
 }
 
 export interface BriefingResult {

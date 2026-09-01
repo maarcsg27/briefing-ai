@@ -202,7 +202,7 @@ export default async function handler(req: any, res: any) {
           titular: a.titular,
           enlace: a.enlace,
           fuente: a.fuente,
-          texto_completo: a.texto_completo,
+          texto_completo: (a.texto_completo || '').substring(0, 700),
         }));
 
         const promptText = `
@@ -215,7 +215,8 @@ A continuación, recibirás dos bloques de información:
 TUS INSTRUCCIONES:
 1. FILTRADO: Analiza el texto completo de cada noticia en [NOTICIAS_EXTRAIDAS]. Compara el contenido con las etiquetas en [PREFERENCIAS_DEL_USUARIO]. Descarta cualquier noticia que no tenga una relación directa, clara y sustancial con al menos una de las etiquetas del usuario.
 2. RESUMEN: Para las noticias que pasen el filtro, lee el contenido completo y redacta un resumen de exactamente un párrafo (máximo 4-5 oraciones). El resumen debe ser objetivo, directo al grano y contener la información de mayor valor de la noticia. No uses frases introductorias como "Este artículo trata sobre..." o "En esta noticia...".
-3. FORMATO DE SALIDA: Debes devolver la información EXCLUSIVAMENTE en formato JSON válido, sin texto adicional en formato Markdown.
+3. CLASIFICACIÓN ADICIONAL: Asigna el sentimiento general ("Positivo", "Neutro", "Negativo") y una puntuación de impacto/relevancia ("relevance_score": entero de 1 a 10).
+4. FORMATO DE SALIDA: Debes devolver la información EXCLUSIVAMENTE en formato JSON válido, sin texto adicional en formato Markdown.
 
 La estructura del JSON debe ser exactamente esta:
 {
@@ -225,7 +226,9 @@ La estructura del JSON debe ser exactamente esta:
       "enlace": "URL original proporcionada",
       "fuente": "Nombre del medio o fuente",
       "etiquetas_coincidentes": ["etiqueta1", "etiqueta2"],
-      "resumen": "Tu resumen objetivo de un solo párrafo aquí (4-5 oraciones)."
+      "resumen": "Tu resumen objetivo de un solo párrafo aquí (4-5 oraciones).",
+      "sentiment": "Positivo",
+      "relevance_score": 8
     }
   ],
   "audioScript": "Guion fluido en español para locución por voz..."
@@ -255,7 +258,7 @@ ${JSON.stringify(batch, null, 2)}
               body: JSON.stringify({
                 contents: [{ parts: [{ text: promptText }] }],
                 generationConfig: {
-                  temperature: 0.2,
+                  temperature: 0.1,
                   responseMimeType: 'application/json',
                 },
               }),
@@ -289,6 +292,8 @@ ${JSON.stringify(batch, null, 2)}
                     matchedTags: Array.isArray(art.etiquetas_coincidentes) ? art.etiquetas_coincidentes : tags.slice(0, 1),
                     geographicArea: country || 'España',
                     is24h: true,
+                    sentiment: art.sentiment || 'Neutro',
+                    relevanceScore: typeof art.relevance_score === 'number' ? art.relevance_score : 8,
                     whyRelevance: `Coincide con etiquetas: ${(art.etiquetas_coincidentes || tags).join(', ')}`,
                   };
                 });
