@@ -703,13 +703,10 @@ export const newsService = {
       };
     });
 
-    // PASO 1 DE FILTRADO POR TITULAR Y ETIQUETAS:
-    // Si el usuario tiene etiquetas configuradas, descartar absolutamente noticias sin coincidencias en el titular o tema
+    // PASO 1 DE FILTRADO ESTRICTO DE ETIQUETAS:
+    // Si el usuario tiene etiquetas configuradas, descartar absolutamente cualquier noticia sin coincidencias en sus etiquetas
     if (userTags.length > 0) {
-      const tagMatched = scoredArticles.filter((art) => art.matchedTags.length > 0);
-      if (tagMatched.length > 0) {
-        scoredArticles = tagMatched;
-      }
+      scoredArticles = scoredArticles.filter((art) => art.matchedTags.length > 0);
     }
 
     scoredArticles.sort((a, b) => (b.score || 0) - (a.score || 0));

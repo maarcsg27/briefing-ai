@@ -258,20 +258,18 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    // 3. PASO 1 DE FILTRADO POR TITULAR Y ETIQUETAS:
-    // Analizar el titular de cada noticia. Si el titular/contenido NO coincide ni contiene las etiquetas -> DESCARTAR
+    // 3. PASO 1 DE FILTRADO DE ETIQUETAS OBLIGATORIO:
+    // Analizar el contenido completo de cada noticia. SI NO COINCIDE CON NINGUNA ETIQUETA -> DESCARTAR DE FORMA ABSOLUTA
     if (tags.length > 0) {
-      const cleanTags = tags.map((t) => t.replace(/^#/, '').trim().toLowerCase()).filter((t) => t.length > 2);
-      if (cleanTags.length > 0) {
-        const titleTagMatches = uniqueExtracted.filter((art) => {
-          const titleLower = art.titular.toLowerCase();
-          const fullTextLower = `${art.titular} ${art.texto_completo}`.toLowerCase();
-          return cleanTags.some((tag) => titleLower.includes(tag) || fullTextLower.includes(tag));
-        });
+      const cleanTags = tags
+        .map((t) => t.replace(/^#/, '').trim().toLowerCase())
+        .filter((t) => t.length >= 2);
 
-        if (titleTagMatches.length > 0) {
-          uniqueExtracted = titleTagMatches;
-        }
+      if (cleanTags.length > 0) {
+        uniqueExtracted = uniqueExtracted.filter((art) => {
+          const fullTextLower = `${art.titular} ${art.texto_completo}`.toLowerCase();
+          return cleanTags.some((tag) => fullTextLower.includes(tag));
+        });
       }
     }
 
@@ -356,52 +354,52 @@ ${JSON.stringify(batch, null, 2)}
 
               const filtered = Array.isArray(parsed.noticias_filtradas) ? parsed.noticias_filtradas : [];
               if (filtered.length > 0) {
-                const finalArticles = filtered.slice(0, maxLimit).map((art: any, idx: number) => {
-                  let domain = 'fuente.com';
-                  try {
-                    if (art.enlace) domain = new URL(art.enlace).hostname.replace(/^www\./, '');
-                  } catch {}
+                const finalArticles = filtered
+                  .map((art: any, idx: number) => {
+                    let domain = 'fuente.com';
+                    try {
+                      if (art.enlace) domain = new URL(art.enlace).hostname.replace(/^www\./, '');
+                    } catch {}
 
-                  const validLink = cleanUrl(art.enlace, domain);
-                  let cleanSummary = cleanHtmlTags(art.resumen || '');
-                  if (cleanSummary.length < 40) {
-                    cleanSummary = `${art.titular}. Noticia verificada publicada por ${art.fuente || domain} con las claves e información de ${scopeName}.`;
-                  }
+                    const validLink = cleanUrl(art.enlace, domain);
+                    let cleanSummary = cleanHtmlTags(art.resumen || '');
+                    if (cleanSummary.length < 40) {
+                      cleanSummary = `${art.titular}. Noticia verificada publicada por ${art.fuente || domain} con las claves e información de ${scopeName}.`;
+                    }
 
-                  let matchedTagsList: string[] = Array.isArray(art.etiquetas_coincidentes) 
-                    ? art.etiquetas_coincidentes.map((t: string) => t.replace(/^#/, '').trim()) 
-                    : [];
-                  
-                  if (matchedTagsList.length === 0 && tags.length > 0) {
                     const fullTextToSearch = `${art.titular || ''} ${cleanSummary}`.toLowerCase();
-                    matchedTagsList = tags.filter((t) => {
-                      const cleanT = t.replace(/^#/, '').trim().toLowerCase();
-                      return cleanT.length > 2 && fullTextToSearch.includes(cleanT);
-                    });
-                  }
+                    const matchedTagsList = tags
+                      .filter((t) => {
+                        const cleanT = t.replace(/^#/, '').trim().toLowerCase();
+                        return cleanT.length >= 2 && fullTextToSearch.includes(cleanT);
+                      })
+                      .map((t) => t.replace(/^#/, '').trim());
 
-                  if (matchedTagsList.length === 0 && tags.length > 0) {
-                    matchedTagsList = [tags[0].replace(/^#/, '').trim()];
-                  }
+                    if (tags.length > 0 && matchedTagsList.length === 0) {
+                      return null;
+                    }
 
-                  return {
-                    id: `ai-${Date.now()}-${idx}`,
-                    title: cleanHtmlTags(art.titular || 'Noticia destacada'),
-                    summary: cleanSummary,
-                    contentSnippet: cleanSummary,
-                    source: cleanHtmlTags(art.fuente || domain),
-                    sourceDomain: domain,
-                    sourceUrl: validLink,
-                    publishedAt: 'Últimas 24h',
-                    isOfficial: true,
-                    matchedTags: matchedTagsList,
-                    geographicArea: country || 'España',
-                    is24h: true,
-                    sentiment: art.sentiment || 'Neutro',
-                    relevanceScore: typeof art.relevance_score === 'number' ? art.relevance_score : 8,
-                    whyRelevance: `Noticia seleccionada de la fuente oficial ${art.fuente || domain} por coincidencia con etiquetas: ${matchedTagsList.map((t) => `#${t}`).join(', ')}`,
-                  };
-                });
+                    const tagList = matchedTagsList.length > 0 ? matchedTagsList : (tags.length > 0 ? [tags[0].replace(/^#/, '').trim()] : []);
+
+                    return {
+                      id: `ai-${Date.now()}-${idx}`,
+                      title: cleanHtmlTags(art.titular || 'Noticia destacada'),
+                      summary: cleanSummary,
+                      contentSnippet: cleanSummary,
+                      source: cleanHtmlTags(art.fuente || domain),
+                      sourceDomain: domain,
+                      sourceUrl: validLink,
+                      publishedAt: 'Últimas 24h',
+                      isOfficial: true,
+                      matchedTags: tagList,
+                      geographicArea: country || 'España',
+                      is24h: true,
+                      sentiment: art.sentiment || 'Neutro',
+                      relevanceScore: typeof art.relevance_score === 'number' ? art.relevance_score : 8,
+                      whyRelevance: `Noticia seleccionada de la fuente oficial ${art.fuente || domain} por coincidencia con etiquetas: ${tagList.map((t) => `#${t}`).join(', ')}`,
+                    };
+                  })
+                  .filter(Boolean);
 
                 finalArticles.sort((a: any, b: any) => {
                   const scoreA = (a.matchedTags ? a.matchedTags.length : 0) * 20 + (a.relevanceScore || 0);
@@ -417,7 +415,7 @@ ${JSON.stringify(batch, null, 2)}
                   timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
                   audioScript: parsed.audioScript || `Resumen de prensa de ${scopeName}.`,
                   summaryBulletPoints: finalArticles.map((a: any) => a.summary),
-                  articles: finalArticles,
+                  articles: finalArticles.slice(0, maxLimit),
                   totalAnalyzed: uniqueExtracted.length,
                 });
               }
@@ -434,7 +432,13 @@ ${JSON.stringify(batch, null, 2)}
     // --- 3. RESPUESTA DE CONTINGENCIA SERVERLESS (SI GEMINI NO RESPONDE O NO HAY KEY) ---
     let scoredExtracted = uniqueExtracted.map((art) => {
       const fullText = `${art.titular} ${art.texto_completo}`.toLowerCase();
-      const matched = tags.filter((t) => t.trim() && fullText.includes(t.toLowerCase().trim()));
+      const matched = tags
+        .filter((t) => {
+          const cleanT = t.replace(/^#/, '').trim().toLowerCase();
+          return cleanT.length >= 2 && fullText.includes(cleanT);
+        })
+        .map((t) => t.replace(/^#/, '').trim());
+
       return {
         ...art,
         matchedTags: matched,
@@ -443,10 +447,7 @@ ${JSON.stringify(batch, null, 2)}
     });
 
     if (tags.length > 0) {
-      const tagMatchedOnly = scoredExtracted.filter((art) => art.matchedTags.length > 0);
-      if (tagMatchedOnly.length > 0) {
-        scoredExtracted = tagMatchedOnly;
-      }
+      scoredExtracted = scoredExtracted.filter((art) => art.matchedTags.length > 0);
     }
 
     scoredExtracted.sort((a, b) => b.score - a.score);
