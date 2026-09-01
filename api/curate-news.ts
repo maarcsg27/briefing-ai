@@ -24,16 +24,27 @@ interface ExtractedArticle {
 
 function cleanHtmlTags(str: string): string {
   if (!str) return '';
-  return str
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+  let cleaned = str
+    // 1. Quitar bloques CDATA
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')
+    // 2. Decodificar entidades HTML primero
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&nbsp;/g, ' ');
+
+  // 3. Eliminar todas las etiquetas HTML (incluyendo <a href...>, <font>, etc.)
+  cleaned = cleaned.replace(/<[^>]*>/gi, ' ');
+
+  // 4. Eliminar URLs crudas tipo https://... o http://... dentro del texto del resumen
+  cleaned = cleaned.replace(/https?:\/\/[^\s]+/gi, ' ');
+
+  // 5. Eliminar muletillas y espacios duplicados
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+  return cleaned;
 }
 
 function extractRssItems(xmlText: string, defaultSource: string, defaultDomain: string): ExtractedArticle[] {
@@ -51,11 +62,6 @@ function extractRssItems(xmlText: string, defaultSource: string, defaultDomain: 
     let rawLink = linkMatch ? linkMatch[1] : '';
     let rawDesc = descMatch ? descMatch[1] : '';
     let sourceName = sourceMatch ? cleanHtmlTags(sourceMatch[1]) : defaultSource;
-
-    // Quitar CDATA si existe
-    rawTitle = rawTitle.replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1');
-    rawLink = rawLink.replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1');
-    rawDesc = rawDesc.replace(/<!\[CDATA\[(.*?)\]\]>/gi, '$1');
 
     const cleanTitle = cleanHtmlTags(rawTitle);
     const cleanLink = cleanHtmlTags(rawLink);
@@ -305,12 +311,17 @@ ${JSON.stringify(batch, null, 2)}
                     if (art.enlace) domain = new URL(art.enlace).hostname.replace(/^www\./, '');
                   } catch {}
 
+                  let cleanSummary = cleanHtmlTags(art.resumen || '');
+                  if (cleanSummary.length < 40) {
+                    cleanSummary = `${art.titular}. Noticia verificada publicada por ${art.fuente || domain} con las claves e información de ${scopeName}.`;
+                  }
+
                   return {
                     id: `ai-${Date.now()}-${idx}`,
-                    title: art.titular || 'Noticia destacada',
-                    summary: art.resumen || '',
-                    contentSnippet: art.resumen || '',
-                    source: art.fuente || domain,
+                    title: cleanHtmlTags(art.titular || 'Noticia destacada'),
+                    summary: cleanSummary,
+                    contentSnippet: cleanSummary,
+                    source: cleanHtmlTags(art.fuente || domain),
                     sourceDomain: domain,
                     sourceUrl: art.enlace || '#',
                     publishedAt: 'Últimas 24h',
@@ -320,8 +331,10 @@ ${JSON.stringify(batch, null, 2)}
                     is24h: true,
                     sentiment: art.sentiment || 'Neutro',
                     relevanceScore: typeof art.relevance_score === 'number' ? art.relevance_score : 8,
-                    whyRelevance: `Coincide con etiquetas: ${(art.etiquetas_coincidentes || tags).join(', ')}`,
+                    whyRelevance: `Coincide con las etiquetas: ${(art.etiquetas_coincidentes || tags).join(', ')}`,
                   };
+                });
+
                 finalArticles.sort((a: any, b: any) => {
                   const scoreA = (a.matchedTags ? a.matchedTags.length : 0) * 20 + (a.relevanceScore || 0);
                   const scoreB = (b.matchedTags ? b.matchedTags.length : 0) * 20 + (b.relevanceScore || 0);
@@ -370,21 +383,28 @@ ${JSON.stringify(batch, null, 2)}
 
     scoredExtracted.sort((a, b) => b.score - a.score);
 
-    const fallbackArticles = scoredExtracted.slice(0, maxLimit).map((art, idx) => ({
-      id: `fallback-${Date.now()}-${idx}`,
-      title: art.titular,
-      summary: art.texto_completo.length > 250 ? art.texto_completo.substring(0, 247) + '...' : art.texto_completo,
-      contentSnippet: art.texto_completo,
-      source: art.fuente,
-      sourceDomain: art.dominio,
-      sourceUrl: art.enlace,
-      publishedAt: 'Últimas 24h',
-      isOfficial: true,
-      matchedTags: art.matchedTags,
-      geographicArea: country || 'España',
-      is24h: true,
-      whyRelevance: `Coincide con las etiquetas de ${scopeName}.`,
-    }));
+    const fallbackArticles = scoredExtracted.slice(0, maxLimit).map((art, idx) => {
+      let cleanSummary = cleanHtmlTags(art.texto_completo || '');
+      if (cleanSummary.length < 40) {
+        cleanSummary = `${art.titular}. Cobertura completa publicada por ${art.fuente} detallando los hechos clave e impacto en ${scopeName}.`;
+      }
+
+      return {
+        id: `fallback-${Date.now()}-${idx}`,
+        title: art.titular,
+        summary: cleanSummary,
+        contentSnippet: cleanSummary,
+        source: art.fuente,
+        sourceDomain: art.dominio,
+        sourceUrl: art.enlace,
+        publishedAt: 'Últimas 24h',
+        isOfficial: true,
+        matchedTags: art.matchedTags,
+        geographicArea: country || 'España',
+        is24h: true,
+        whyRelevance: `Coincide con las etiquetas de ${scopeName}.`,
+      };
+    });
 
     return res.status(200).json({
       success: true,

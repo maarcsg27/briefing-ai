@@ -7,6 +7,21 @@ interface NewsFeedProps {
   selectedTags?: string[];
 }
 
+function stripHtmlAndUrls(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/<[^>]*>/gi, ' ')
+    .replace(/https?:\/\/[^\s]+/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
   return (
     <div className="space-y-6">
@@ -27,6 +42,7 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
         <div className="grid grid-cols-1 gap-3.5">
           {briefing.articles.map((article) => {
             const hasMatchedTags = article.matchedTags && article.matchedTags.length > 0;
+            const cleanSummaryText = stripHtmlAndUrls(article.summary || article.contentSnippet);
 
             return (
               <div
@@ -63,7 +79,7 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
                       Titular Seleccionado:
                     </span>
                     <h4 className="text-base sm:text-lg font-bold text-white leading-snug">
-                      {article.title}
+                      {stripHtmlAndUrls(article.title)}
                     </h4>
                   </div>
 
@@ -74,7 +90,7 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
                         Resumen del Contenido del Artículo:
                       </span>
                       <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
-                        {article.summary || article.contentSnippet}
+                        {cleanSummaryText}
                       </p>
                     </div>
 
