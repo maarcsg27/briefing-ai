@@ -511,7 +511,7 @@ export const newsService = {
           tags: preferences.tags || [],
           sources: preferences.sources || [],
           bannedKeywords: preferences.bannedKeywords || [],
-          maxLimit: preferences.maxNewsLimit || 5,
+          maxLimit: preferences.maxNewsLimit && preferences.maxNewsLimit > 0 ? preferences.maxNewsLimit : 20,
           apiKey: geminiService.getApiKey(),
           country: preferences.country || 'España',
           geographicScope: preferences.geographicScope || 'nacional',

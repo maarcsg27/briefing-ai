@@ -108,7 +108,7 @@ export default async function handler(req: any, res: any) {
       tags = [],
       sources = [],
       bannedKeywords = [],
-      maxLimit = 5,
+      maxLimit = 20,
       apiKey: clientApiKey,
       country = 'España',
       geographicScope = 'nacional',
@@ -152,6 +152,31 @@ export default async function handler(req: any, res: any) {
           })()
         );
       });
+
+      // Búsqueda cruzada por cada una de las etiquetas del usuario para garantizar hasta 20 noticias
+      if (tags.length > 0) {
+        tags.slice(0, 10).forEach((tag) => {
+          fetchTasks.push(
+            (async () => {
+              try {
+                const cleanTag = tag.replace(/^#/, '').trim();
+                if (!cleanTag || cleanTag.length < 3) return;
+                const query = `${cleanTag} when:24h`;
+                const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
+                const response = await fetch(rssUrl, {
+                  headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BriefingAI-Worker/2.0)' },
+                  signal: AbortSignal.timeout(5000),
+                });
+                if (response.ok) {
+                  const xml = await response.text();
+                  const items = extractRssItems(xml, 'Medio Verificado', 'noticias.es');
+                  extractedArticles.push(...items);
+                }
+              } catch {}
+            })()
+          );
+        });
+      }
     } else {
       fetchTasks.push(
         (async () => {
@@ -198,11 +223,12 @@ export default async function handler(req: any, res: any) {
     // --- 2. PIPELINE DE CURACIÓN CON GEMINI 2.5 FLASH (SI API KEY ESTÁ ACTIVA) ---
     if (apiKey && apiKey.length > 10 && uniqueExtracted.length > 0) {
       try {
-        const batch = uniqueExtracted.slice(0, 15).map((a) => ({
+        const candidateLimit = Math.max(maxLimit * 2.5, 40);
+        const batch = uniqueExtracted.slice(0, candidateLimit).map((a) => ({
           titular: a.titular,
           enlace: a.enlace,
           fuente: a.fuente,
-          texto_completo: (a.texto_completo || '').substring(0, 700),
+          texto_completo: (a.texto_completo || '').substring(0, 600),
         }));
 
         const promptText = `
