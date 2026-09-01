@@ -10,7 +10,7 @@ import { storageService } from './services/storageService';
 import { newsService } from './services/newsService';
 import { geminiService } from './services/geminiService';
 import type { ScopeDefinition, ScopePreferences, BriefingResult } from './types';
-import { Sparkles, Sliders, Newspaper, Library, Key, Bot, ShieldCheck } from 'lucide-react';
+import { Sparkles, ArrowDown, Sliders, Radio, Library, Key, Bot } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'briefings' | 'library'>('briefings');
@@ -19,17 +19,23 @@ export const App: React.FC = () => {
   const [preferencesMap, setPreferencesMap] = useState<Record<string, ScopePreferences>>({});
   const [activeScope, setActiveScope] = useState<ScopeDefinition | null>(null);
 
+  // ...
+  // Line 298
+          <LibraryManager
+            scopes={scopes}
+            preferencesMap={preferencesMap}
+            onUpdatePreferences={(_scopeId, updated) => handleSavePreferences(updated)}
+            onUpdateScopes={() => setScopes(storageService.getAllScopes())}
+          />
+  
   // Estado del Configurador de Preferencias
   const [isConfiguratorOpen, setIsConfiguratorOpen] = useState<boolean>(false);
   const [configuratorSelectedId, setConfiguratorSelectedId] = useState<string | null>(null);
   const [configuratorInitialTab, setConfiguratorInitialTab] = useState<'selector' | 'edit' | 'create'>('selector');
 
-  // Estado del Gestor de Sesiones
-  const [isSaveVersionModalOpen, setIsSaveVersionModalOpen] = useState<boolean>(false);
-  const [activeVersionName, setActiveVersionName] = useState<string | null>(null);
-
   const [currentBriefing, setCurrentBriefing] = useState<BriefingResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [voiceNotice, setVoiceNotice] = useState<string>('');
   const [syncStatus, setSyncStatus] = useState<string>('');
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
 
@@ -53,6 +59,7 @@ export const App: React.FC = () => {
       setLastSyncTime(d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }));
     }
 
+    // Activar por defecto la primera categoría visible y comprobar si tiene caché del día
     const initial = loadedScopes.find((s) => loadedVisibleIds.includes(s.id)) || loadedScopes[0];
     if (initial) {
       const cached = storageService.getDailyBriefingCache(initial.id);
@@ -65,20 +72,23 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Comprobación automática cada 15s para actualizar según hora configurada
+  // Comprobación automática cada minuto: si la hora actual coincide con la hora marcada de una categoría activa, actualizar automáticamente
   useEffect(() => {
     const checkScheduledAutoUpdate = () => {
       const now = new Date();
       const currentHHMM = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
+      // Revisar categorías visibles
       const activeScopes = scopes.filter((s) => visibleScopeIds.length === 0 || visibleScopeIds.includes(s.id));
       for (const s of activeScopes) {
         const prefs = preferencesMap[s.id] || s.defaultPreferences;
         if (prefs.preferredTime === currentHHMM) {
+          // Comprobar si ya se actualizó hoy a esta hora
           const today = now.toISOString().slice(0, 10);
           const autoKey = `auto_updated_${s.id}_${today}_${currentHHMM}`;
           if (!sessionStorage.getItem(autoKey)) {
             sessionStorage.setItem(autoKey, 'true');
+            console.log(`[Auto-Update] Hora marcada cumplida para ${s.name} (${currentHHMM}). Actualizando noticias 24h...`);
             handleGenerateBriefing(s, prefs, true, true);
             break;
           }
@@ -86,10 +96,11 @@ export const App: React.FC = () => {
       }
     };
 
-    const timer = setInterval(checkScheduledAutoUpdate, 15000);
+    const timer = setInterval(checkScheduledAutoUpdate, 15000); // comprobar cada 15s
     return () => clearInterval(timer);
   }, [scopes, visibleScopeIds, preferencesMap]);
 
+  // Función para ejecutar la búsqueda exhaustiva de las últimas 24h
   const handleGenerateBriefing = async (
     scope: ScopeDefinition,
     prefs?: ScopePreferences,
@@ -100,6 +111,7 @@ export const App: React.FC = () => {
     setActiveScope(scope);
     const activePrefs = prefs || preferencesMap[scope.id] || scope.defaultPreferences;
 
+    // Si no es forzado, revisar si ya tenemos el briefing de hoy en caché
     if (!forceFresh) {
       const cached = storageService.getDailyBriefingCache(scope.id);
       if (cached) {
@@ -115,7 +127,7 @@ export const App: React.FC = () => {
     }
 
     try {
-      setSyncStatus(`Rastreando prensa 24h en ${scope.name}...`);
+      setSyncStatus(`Rastreando noticias de las últimas 24h en ${scope.name}...`);
       const result = await newsService.generateBriefing(
         scope.id, 
         activePrefs, 
@@ -136,139 +148,171 @@ export const App: React.FC = () => {
           window.dispatchEvent(new CustomEvent('briefing-auto-play'));
         }, 300);
       }
-    } catch (e) {
-      console.error('Error generando briefing:', e);
-      setSyncStatus('Error al conectar con los servicios de noticias.');
+    } catch (err) {
+      console.error('Error generating briefing:', err);
+      setSyncStatus('Error al conectar con algunas fuentes de noticias. Mostrando datos de respaldo.');
       setTimeout(() => setSyncStatus(''), 5000);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleOpenConfigurator = (
-    targetScope?: ScopeDefinition,
-    tab: 'selector' | 'edit' | 'create' = 'edit'
-  ) => {
-    setConfiguratorInitialTab(tab);
-    setConfiguratorSelectedId(targetScope ? targetScope.id : activeScope ? activeScope.id : scopes[0]?.id || null);
+  // Forzar actualización exhaustiva de todas las categorías visibles
+  const handleTriggerFullSync = async () => {
+    if (!activeScope) return;
+    handleGenerateBriefing(activeScope, preferencesMap[activeScope.id], false, true);
+  };
+
+  // Abrir el configurador centrado en una categoría específica o en una pestaña específica
+  const handleOpenConfigurator = (scope?: ScopeDefinition, tab: 'selector' | 'edit' | 'create' = 'selector') => {
+    if (scope) {
+      setConfiguratorSelectedId(scope.id);
+      setConfiguratorInitialTab('edit');
+    } else {
+      if (scopes.length > 0) setConfiguratorSelectedId(scopes[0].id);
+      setConfiguratorInitialTab(tab);
+    }
     setIsConfiguratorOpen(true);
   };
 
-  const handleSavePreferences = (prefs: ScopePreferences, updatedScope?: ScopeDefinition) => {
-    const scopeId = updatedScope ? updatedScope.id : prefs.scopeId;
-    storageService.savePreferences(prefs);
-
-    if (updatedScope) {
-      storageService.updateScope(updatedScope);
-      const allUpdated = storageService.getAllScopes();
-      setScopes(allUpdated);
-    }
-
-    setPreferencesMap((prev) => ({
-      ...prev,
-      [scopeId]: prefs,
-    }));
-
-    if (activeScope && activeScope.id === scopeId) {
-      const targetScope = updatedScope || activeScope;
-      handleGenerateBriefing(targetScope, prefs, false, true);
-    }
-  };
-
+  // Guardar qué categorías son visibles en toda la web
   const handleSaveVisibleScopeIds = (newVisibleIds: string[]) => {
     storageService.saveVisibleScopeIds(newVisibleIds);
     setVisibleScopeIds(newVisibleIds);
 
+    // Si el ámbito activo se ocultó, cambiar al primer visible disponible
     if (activeScope && !newVisibleIds.includes(activeScope.id)) {
-      const nextVisibleScope = scopes.find((s) => newVisibleIds.includes(s.id));
-      if (nextVisibleScope) {
-        handleGenerateBriefing(nextVisibleScope, preferencesMap[nextVisibleScope.id], false, false);
+      const nextScope = scopes.find((s) => newVisibleIds.includes(s.id));
+      if (nextScope) {
+        handleGenerateBriefing(nextScope, preferencesMap[nextScope.id], false);
       }
     }
   };
 
+  // Guardar preferencias y descripción de categoría
+  const handleSavePreferences = (newPrefs: ScopePreferences, updatedScope?: ScopeDefinition) => {
+    storageService.savePreferences(newPrefs);
+    setPreferencesMap((prev) => ({
+      ...prev,
+      [newPrefs.scopeId]: newPrefs,
+    }));
+
+    if (updatedScope) {
+      const updatedList = storageService.updateScope(updatedScope);
+      setScopes(updatedList);
+      if (activeScope && activeScope.id === updatedScope.id) {
+        setActiveScope(updatedScope);
+      }
+    }
+
+    // Regenerar si es el ámbito que está en pantalla
+    if (activeScope && activeScope.id === newPrefs.scopeId) {
+      const currentDef = updatedScope || activeScope;
+      handleGenerateBriefing(currentDef, newPrefs, false);
+    }
+  };
+
+  // Crear nueva categoría dinámica
   const handleCreateScope = (newScope: ScopeDefinition) => {
-    storageService.addScope(newScope);
-
-    const newVisible = [...visibleScopeIds, newScope.id];
-    storageService.saveVisibleScopeIds(newVisible);
-
-    const allScopes = storageService.getAllScopes();
-    setScopes(allScopes);
-    setVisibleScopeIds(newVisible);
+    const updated = storageService.addScope(newScope);
+    setScopes(updated);
     setPreferencesMap((prev) => ({
       ...prev,
       [newScope.id]: newScope.defaultPreferences,
     }));
-
-    handleGenerateBriefing(newScope, newScope.defaultPreferences, true, true);
+    setConfiguratorSelectedId(newScope.id);
+    // Cambiar al nuevo ámbito
+    handleGenerateBriefing(newScope, newScope.defaultPreferences, false);
   };
 
+  // Eliminar categoría personalizada
   const handleDeleteScope = (scopeId: string) => {
-    storageService.deleteScope(scopeId);
-    const updatedScopes = storageService.getAllScopes();
-    const updatedVisible = storageService.getVisibleScopeIds();
-
-    setScopes(updatedScopes);
-    setVisibleScopeIds(updatedVisible);
-
-    if (activeScope?.id === scopeId) {
-      const fallback = updatedScopes.find((s) => updatedVisible.includes(s.id)) || updatedScopes[0];
-      if (fallback) {
-        handleGenerateBriefing(fallback, preferencesMap[fallback.id] || fallback.defaultPreferences, false, false);
+    const updated = storageService.deleteScope(scopeId);
+    setScopes(updated);
+    if (updated.length > 0) {
+      setConfiguratorSelectedId(updated[0].id);
+      if (activeScope?.id === scopeId) {
+        handleGenerateBriefing(updated[0], undefined, false);
       }
     }
   };
 
+  // Manejo de comandos por voz
+  const handleVoiceCommand = (command: string) => {
+    const cmdLower = command.toLowerCase();
+    setVoiceNotice(`Comando de voz recibido: "${command}"`);
+
+    const matchedScope = scopes.find((s) => {
+      const nameMatch = cmdLower.includes(s.name.toLowerCase());
+      const labelMatch = cmdLower.includes(s.id.toLowerCase());
+      return nameMatch || labelMatch;
+    });
+
+    if (matchedScope) {
+      handleGenerateBriefing(matchedScope, preferencesMap[matchedScope.id], true);
+    } else {
+      setVoiceNotice(`No se reconoció el ámbito en: "${command}". Puedes elegirlo en la pantalla.`);
+    }
+
+    setTimeout(() => setVoiceNotice(''), 6000);
+  };
+
+  // Estado para Modal de Guardar Versión / Perfil de Configuración
+  const [isSaveVersionModalOpen, setIsSaveVersionModalOpen] = useState(false);
+  const [activeVersionName, setActiveVersionName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const info = storageService.getActiveVersionInfo();
+    setActiveVersionName(info ? info.name : null);
+  }, [isSaveVersionModalOpen]);
+
   return (
-    <div className="min-h-screen bg-[#080a0f] text-slate-100 font-sans selection:bg-emerald-500/30">
-      {/* Editorial Masthead */}
-      <Header
-        onOpenConfigurator={() => handleOpenConfigurator(undefined, 'selector')}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      {/* Cabecera con Reloj de Cuenta Atrás y Acceso al Configurador */}
+      <Header 
+        onVoiceCommand={handleVoiceCommand} 
+        onOpenConfigurator={() => handleOpenConfigurator()} 
         onOpenSaveVersionModal={() => setIsSaveVersionModalOpen(true)}
-        onTriggerSync={() => {
-          if (activeScope) {
-            handleGenerateBriefing(activeScope, undefined, true, true);
-          }
-        }}
-        statusText={syncStatus}
+        onTriggerSync={handleTriggerFullSync}
         isSyncing={isLoading}
+        statusText={syncStatus || voiceNotice}
         scopes={scopes}
         preferencesMap={preferencesMap}
         visibleScopeIds={visibleScopeIds}
         activeVersionName={activeVersionName}
       />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      {/* Contenedor Principal Adaptativo */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8">
         
-        {/* Navegación Principal en Pestañas Editoriales */}
-        <div className="flex items-center gap-2 border-b border-paper-750 pb-3">
+        {/* NAVEGACIÓN SUPERIOR DE PESTAÑAS: BRIEFINGS vs BIBLIOTECA & IA */}
+        <div className="flex items-center justify-center sm:justify-start gap-2 border-b border-slate-800 pb-3">
           <button
             onClick={() => setActiveTab('briefings')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-xs transition ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition ${
               activeTab === 'briefings'
-                ? 'bg-paper-850 text-white border border-paper-700 shadow-sm'
-                : 'text-slate-400 hover:text-white hover:bg-paper-900'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+                : 'bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
-            <Newspaper className="w-4 h-4 text-emerald-400" />
-            <span>Portadas & Feed Curado</span>
+            <Radio className="w-4 h-4 text-emerald-300" />
+            <span>Briefings & Noticias</span>
           </button>
 
           <button
             onClick={() => setActiveTab('library')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-xs transition ${
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition ${
               activeTab === 'library'
-                ? 'bg-paper-850 text-white border border-paper-700 shadow-sm'
-                : 'text-slate-400 hover:text-white hover:bg-paper-900'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                : 'bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
-            <Library className="w-4 h-4 text-indigo-400" />
-            <span>Biblioteca de Temáticas & Fuentes IA</span>
+            <Library className="w-4 h-4 text-indigo-300" />
+            <span>Biblioteca de Temáticas & Fuentes (IA)</span>
           </button>
         </div>
 
-        {/* VISTA 1: BIBLIOTECA DE TEMÁTICAS */}
+        {/* VISTA 1: BIBLIOTECA DE TEMÁTICAS Y DESCUBRIMIENTO POR IA */}
         {activeTab === 'library' ? (
           <LibraryManager
             scopes={scopes}
@@ -277,62 +321,89 @@ export const App: React.FC = () => {
             onUpdateScopes={() => setScopes(storageService.getAllScopes())}
           />
         ) : (
-          /* VISTA 2: PORTADA EDITORIAL & FEED DIARIO */
+          /* VISTA 2: BRIEFINGS DIARIOS Y NOTICIAS EN VIVO */
           <>
-            {/* Banner Editorial Contextual */}
-            <div className="p-6 rounded-xl bg-paper-900 border border-paper-750 shadow-lg relative overflow-hidden">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-                <div className="space-y-2 max-w-2xl">
-                  <div className="flex items-center gap-2 flex-wrap text-xs font-mono">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-500/30">
+            {/* Banner de Bienvenida y Acceso Directo al Configurador */}
+            <div className="relative rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-800 p-4 sm:p-6 md:p-8 overflow-hidden shadow-2xl">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
+                <div className="max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2 mb-2.5 sm:mb-3">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] sm:text-xs font-semibold">
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>Curación de Noticias 24h</span>
-                    </span>
+                      <span>Búsqueda Exhaustiva 24h & Locución</span>
+                    </div>
 
                     {geminiService.hasValidKey() ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-indigo-950/40 text-indigo-300 border border-indigo-500/30">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-[11px] sm:text-xs font-semibold">
                         <Bot className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>Gemini 2.5 Flash Activo</span>
-                      </span>
+                        <span>Gemini 2.5 Flash IA Activo</span>
+                      </div>
                     ) : (
                       <button
                         onClick={() => setActiveTab('library')}
-                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-amber-950/40 hover:bg-amber-900/40 text-amber-300 border border-amber-500/30 transition cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] sm:text-xs font-semibold transition"
                       >
                         <Key className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Configurar Gemini Key ➔</span>
+                        <span>Activar Gemini API Key para Resúmenes por IA ➔</span>
                       </button>
                     )}
 
                     {lastSyncTime && (
-                      <span className="text-slate-400">
-                        • Actualizado a las {lastSyncTime}
-                      </span>
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300 text-[11px] sm:text-xs font-mono">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span>Actualizado hoy {lastSyncTime}</span>
+                      </div>
                     )}
                   </div>
-
-                  <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
-                    Resumen hiper-personalizado por etiquetas y medios oficiales.
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-2">
+                    Lo más relevante de las últimas 24 horas.
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                    Evaluación continua en 2 pasos: primero descartamos absolutamente cualquier noticia que no coincida en el titular con tus etiquetas prioritarias, y luego sintetizamos su contenido objetivo.
+                    Rastreo continuo de medios oficiales y sintesis avanzada por IA. Las noticias se priorizan primero según tus <strong>etiquetas configuradas</strong> con resúmenes explicativos de 3 a 5 líneas.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2.5 shrink-0">
+                <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0 w-full sm:w-auto">
+                  <button
+                    onClick={() => setActiveTab('library')}
+                    className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/20 transition w-full sm:w-auto"
+                  >
+                    <Library className="w-4 h-4" />
+                    <span>Biblioteca & Fuentes IA</span>
+                  </button>
+
                   <button
                     onClick={() => handleOpenConfigurator()}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl sm:rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs border border-slate-700 transition w-full sm:w-auto"
                   >
-                    <Sliders className="w-3.5 h-3.5" />
+                    <Sliders className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Ajustes Rápidos</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Selector de Temáticas & Secciones Editoriales */}
+            {/* Sección de Categorías y Botones de Ámbito */}
             <section className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300">
+                    Tus Categorías Activas en la Web:
+                  </h3>
+                  <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-semibold">
+                    {scopes.filter((s) => visibleScopeIds.includes(s.id)).length} de {scopes.length}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => handleOpenConfigurator(undefined, 'selector')}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold transition self-start sm:self-auto"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Personalizar qué categorías mostrar</span>
+                </button>
+              </div>
+
               <ScopeGrid
                 scopes={scopes.filter((s) => visibleScopeIds.includes(s.id))}
                 preferencesMap={preferencesMap}
@@ -348,9 +419,15 @@ export const App: React.FC = () => {
               />
             </section>
 
-            {/* Feed Principal Curado con Jerarquía Editorial */}
+            {/* Separador Visual */}
+            <div className="flex items-center justify-center gap-2 text-xs text-slate-500 pt-2">
+              <ArrowDown className="w-4 h-4 text-emerald-400 animate-bounce" />
+              <span>Resumen de voz y titulares verificados del momento</span>
+            </div>
+
+            {/* Sección de Resultados: Reproductor de Voz + Feed de Noticias */}
             {currentBriefing && (
-              <section className="space-y-6">
+              <section className="space-y-6 animate-fadeIn">
                 <BriefingPlayer briefing={currentBriefing} autoPlay={false} />
                 <NewsFeed
                   briefing={currentBriefing}
@@ -365,18 +442,14 @@ export const App: React.FC = () => {
 
       </main>
 
-      {/* Footer Editorial Fino */}
-      <footer className="border-t border-paper-800 bg-[#080a0f] py-6 mt-12 text-center text-xs font-mono text-slate-500">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Briefing.AI • Motor de curación hiper-personalizada de noticias</span>
-          <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            Fuentes verificadas & seguimiento de etiquetas
-          </span>
-        </div>
+      {/* Footer */}
+      <footer className="border-t border-slate-900 bg-slate-950 py-6 mt-12 text-center text-xs text-slate-500">
+        <p>
+          BriefingAI • Búsquedas especializadas en páginas oficiales y organismos acreditados.
+        </p>
       </footer>
 
-      {/* Configurador Integral */}
+      {/* Configurador Integral de Preferencias */}
       <PreferencesConfigurator
         isOpen={isConfiguratorOpen}
         onClose={() => setIsConfiguratorOpen(false)}
@@ -392,7 +465,7 @@ export const App: React.FC = () => {
         onOpenSaveVersionModal={() => setIsSaveVersionModalOpen(true)}
       />
 
-      {/* Gestor de Sesiones */}
+      {/* Gestor y Selección de Sesiones / Perfiles de Configuración */}
       <SessionSelectorModal
         isOpen={isSaveVersionModalOpen}
         onClose={() => setIsSaveVersionModalOpen(false)}
