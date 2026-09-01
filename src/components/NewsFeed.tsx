@@ -43,6 +43,9 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
           {briefing.articles.map((article) => {
             const hasMatchedTags = article.matchedTags && article.matchedTags.length > 0;
             const cleanSummaryText = stripHtmlAndUrls(article.summary || article.contentSnippet);
+            const validUrl = article.sourceUrl && article.sourceUrl.startsWith('http') && !article.sourceUrl.includes('#')
+              ? article.sourceUrl
+              : `https://${article.sourceDomain || 'google.com'}`;
 
             return (
               <div
@@ -57,10 +60,16 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
                   {/* Barra de metadatos superior */}
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-xs font-semibold text-white">
+                      <a
+                        href={`https://${article.sourceDomain}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-white transition"
+                        title={`Ir a ${article.source}`}
+                      >
                         <ShieldCheck className="w-3 h-3 text-emerald-400" />
                         <span>{article.source}</span>
-                      </span>
+                      </a>
                       <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {article.publishedAt}
@@ -73,13 +82,21 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
                     </span>
                   </div>
 
-                  {/* Titular Seleccionado */}
+                  {/* Titular Seleccionado con Enlace Clicable Directo */}
                   <div className="mb-2">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 block mb-0.5">
                       Titular Seleccionado:
                     </span>
                     <h4 className="text-base sm:text-lg font-bold text-white leading-snug">
-                      {stripHtmlAndUrls(article.title)}
+                      <a
+                        href={validUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-emerald-400 transition-colors"
+                        title="Abrir noticia original"
+                      >
+                        {stripHtmlAndUrls(article.title)}
+                      </a>
                     </h4>
                   </div>
 
@@ -143,12 +160,12 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ briefing }) => {
                     {article.sourceDomain}
                   </span>
                   <a
-                    href={article.sourceUrl}
+                    href={validUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white text-xs font-semibold transition group shadow-sm"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition group shadow-sm"
                   >
-                    <span>Leer en la fuente oficial</span>
+                    <span>Leer en la fuente oficial ({article.sourceDomain})</span>
                     <ExternalLink className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
                   </a>
                 </div>

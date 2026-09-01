@@ -22,12 +22,33 @@ interface ExtractedArticle {
   pubDate?: string;
 }
 
+function cleanUrl(str: string, defaultDomain: string): string {
+  if (!str) return `https://${defaultDomain}`;
+  let cleaned = str
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .trim();
+
+  const hrefMatch = cleaned.match(/href=["'](https?:\/\/[^"']+)["']/i);
+  if (hrefMatch) {
+    return hrefMatch[1];
+  }
+
+  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+    return cleaned;
+  }
+
+  return `https://${defaultDomain}`;
+}
+
 function cleanHtmlTags(str: string): string {
   if (!str) return '';
   let cleaned = str
-    // 1. Quitar bloques CDATA
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')
-    // 2. Decodificar entidades HTML primero
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
@@ -35,13 +56,8 @@ function cleanHtmlTags(str: string): string {
     .replace(/&amp;/g, '&')
     .replace(/&nbsp;/g, ' ');
 
-  // 3. Eliminar todas las etiquetas HTML (incluyendo <a href...>, <font>, etc.)
   cleaned = cleaned.replace(/<[^>]*>/gi, ' ');
-
-  // 4. Eliminar URLs crudas tipo https://... o http://... dentro del texto del resumen
   cleaned = cleaned.replace(/https?:\/\/[^\s]+/gi, ' ');
-
-  // 5. Eliminar muletillas y espacios duplicados
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
 
   return cleaned;
@@ -64,7 +80,7 @@ function extractRssItems(xmlText: string, defaultSource: string, defaultDomain: 
     let sourceName = sourceMatch ? cleanHtmlTags(sourceMatch[1]) : defaultSource;
 
     const cleanTitle = cleanHtmlTags(rawTitle);
-    const cleanLink = cleanHtmlTags(rawLink);
+    const cleanLink = cleanUrl(rawLink, defaultDomain);
     const cleanDesc = cleanHtmlTags(rawDesc);
 
     if (cleanTitle && cleanTitle.length > 8) {
