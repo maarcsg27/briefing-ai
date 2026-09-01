@@ -58,58 +58,35 @@ export const geminiService = {
     const maxLimit = preferences.maxNewsLimit || 5;
 
     const promptText = `
-Actúa como un motor inteligente de curación y análisis profundo de medios. Tu tarea es ejecutar estrictamente el siguiente RECORRIDO DE ANÁLISIS EN 4 PASOS para la categoría "${scope.name}":
+Actúa como el motor de curación de contenidos y análisis de texto para un agregador de noticias hiper-personalizado. Tu objetivo es procesar las fuentes registradas en la biblioteca, filtrar estrictamente aquellas noticias que coincidan con las etiquetas del usuario y generar un resumen estructurado.
 
-PASO 1: REPASO DE TITULARES Y FUENTES REGISTRADAS (ÚLTIMAS 24 HORAS)
-Inspecciona las fuentes de información activas configuradas en la biblioteca del usuario para la categoría "${scope.name}":
+[PREFERENCIAS_DEL_USUARIO]
+- Categoría: ${scope.name}
+- Etiquetas prioritarias (Tags): [${tagsStr}]
+- Palabras y temas vetados (Blacklist): [${bannedStr}]
+- Fuentes oficiales de la biblioteca a consultar:
 ${sourcesStr || '- Medios acreditados del sector'}
-Analiza todos los titulares de noticias y artículos publicados exclusivamente en las ÚLTIMAS 24 HORAS.
+- Límite estricto de resultados: Hasta ${maxLimit} noticias
 
-PASO 2: FILTRADO POR COINCIDENCIA DE ETIQUETAS EN LA CATEGORÍA
-De todos los titulares y artículos encontrados, filtra y selecciona ÚNICAMENTE aquellos que contengan o estén relacionados directamente con las etiquetas configuradas en la categoría: [${tagsStr}].
-Descarta de forma automática cualquier contenido engañoso o palabras vetadas: [${bannedStr}].
+INSTRUCCIONES DE ANÁLISIS:
+1. FILTRADO ESTRICTO: Examina los artículos de las ÚLTIMAS 24 HORAS en las fuentes de la biblioteca. Compara el contenido de cada noticia con las etiquetas en [PREFERENCIAS_DEL_USUARIO]. Descarta cualquier noticia que no tenga una relación directa, clara y sustancial con al menos una de las etiquetas del usuario.
+2. RESUMEN: Para las noticias que pasen el filtro, analiza el contenido completo y redacta un resumen objetivo de exactamente un párrafo (máximo 4-5 oraciones). El resumen debe ser objetivo, directo al grano y contener la información de mayor valor de la noticia. No uses frases introductorias como "Este artículo trata sobre..." o "En esta noticia...".
+3. FORMATO DE SALIDA: Debes devolver la información EXCLUSIVAMENTE en formato JSON válido, sin texto adicional en formato Markdown.
 
-PASO 3: ANÁLISIS PROFUNDO ENLACE POR ENLACE (RESUMEN DETALLADO)
-Para cada una de las noticias filtradas, accede a la URL directa del artículo y aplica estrictamente la siguiente instrucción de análisis:
-"Entra en esta noticia y dime de qué habla. Hazme un resumen detallado del contenido de la noticia/artículo."
-(El resumen de cada noticia debe tener una extensión estricta de 3 a 5 líneas desglosando los hechos clave acontecidos, los actores o protagonistas involucrados y la conclusión/impacto principal).
-
-PASO 4: RANKING Y SALIDA DE NOTICIAS CON MÁS COINCIDENCIAS (HASTA ${maxLimit})
-Devuelve un total estricto de hasta ${maxLimit} noticias que tengan la mayor coincidencia e impacto con las etiquetas configuradas en la categoría, ordenadas de mayor a menor relevancia.
-
-ESTRUCTURA DE CADA NOTICIA DEVUELTA:
-- "title": Titular limpio del artículo.
-- "source": Nombre de la fuente oficial o medio.
-- "sourceDomain": Dominio web exacto de la fuente de la biblioteca (ej. "${enabledSourcesList[0]?.domain || 'marca.com'}").
-- "sourceUrl": URL directa al artículo analizado.
-- "publishedAt": Tiempo de publicación (últimas 24h).
-- "matchedTags": Array con las etiquetas con las que coincide la noticia (ej. ["${preferences.tags[0] || 'Actualidad'}"]).
-- "summary": Resumen detallado de 3 a 5 líneas explicando de qué habla la noticia (qué ocurrió, quiénes intervienen y consecuencia principal).
-- "whyRelevance": Una frase explicando por qué es relevante según las etiquetas del usuario.
-
-FORMATO DE RESPUESTA REQUERIDO:
-Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato markdown ni texto extra:
+ESTRUCTURA EXACTA DEL JSON REQUERIDA:
 {
-  "articles": [
+  "noticias_filtradas": [
     {
-      "id": "ai-1",
-      "title": "Titular claro y conciso",
-      "summary": "Resumen detallado de 3 a 5 líneas respondiendo de qué habla la noticia, qué ocurrió, quiénes intervienen y el impacto clave...",
-      "whyRelevance": "Explicación en 1 frase de por qué es relevante según las etiquetas del usuario.",
-      "contentSnippet": "Extracto explicativo de soporte.",
-      "source": "Nombre del Medio",
-      "sourceDomain": "dominio.com",
-      "sourceUrl": "https://dominio.com/noticia",
-      "publishedAt": "Últimas 24h",
-      "isOfficial": true,
-      "matchedTags": ["Tag1", "Tag2"],
-      "geographicArea": "Global"
+      "titular": "Titular original de la noticia",
+      "enlace": "URL original de la fuente",
+      "fuente": "Nombre del medio oficial",
+      "dominio": "dominio.com",
+      "etiquetas_coincidentes": ["etiqueta1", "etiqueta2"],
+      "resumen": "Resumen de un solo párrafo de 4-5 oraciones desglosando los hechos clave, protagonistas e impacto.",
+      "whyRelevance": "Explicación en 1 frase de por qué cumple con las etiquetas del usuario."
     }
   ],
-  "audioScript": "Guion fluido para la locución por voz...",
-  "summaryBulletPoints": [
-    "[#Tag1] Resumen sintético..."
-  ]
+  "audioScript": "Guion fluido para la locución por voz..."
 }
 `;
 
@@ -166,20 +143,24 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura exacta sin formato 
     const now = new Date();
     const horaActual = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-    let articles: NewsItem[] = (parsed.articles || []).map((art: any, index: number) => ({
+    const rawArticlesArray = Array.isArray(parsed.noticias_filtradas) 
+      ? parsed.noticias_filtradas 
+      : (parsed.articles || []);
+
+    let articles: NewsItem[] = rawArticlesArray.map((art: any, index: number) => ({
       id: art.id || `gemini-${Date.now()}-${index}`,
-      title: art.title || 'Información destacada del día',
-      summary: art.summary || 'Resumen sintetizado por IA.',
-      contentSnippet: art.contentSnippet || art.summary || '',
-      source: art.source || 'Fuente Acreditada',
-      sourceDomain: art.sourceDomain || 'fuente.com',
-      sourceUrl: art.sourceUrl || `https://${art.sourceDomain || 'google.com'}`,
+      title: art.titular || art.title || 'Información destacada del día',
+      summary: art.resumen || art.summary || 'Resumen sintetizado por IA.',
+      contentSnippet: art.resumen || art.summary || art.contentSnippet || '',
+      source: art.fuente || art.source || 'Fuente Acreditada',
+      sourceDomain: art.dominio || art.sourceDomain || 'fuente.com',
+      sourceUrl: art.enlace || art.sourceUrl || `https://${art.sourceDomain || art.dominio || 'google.com'}`,
       publishedAt: art.publishedAt || 'Últimas 24h',
       isOfficial: art.isOfficial !== undefined ? art.isOfficial : true,
-      matchedTags: Array.isArray(art.matchedTags) ? art.matchedTags : [],
+      matchedTags: Array.isArray(art.etiquetas_coincidentes) ? art.etiquetas_coincidentes : (Array.isArray(art.matchedTags) ? art.matchedTags : []),
       geographicArea: art.geographicArea || preferences.country || 'Global',
       is24h: true,
-      whyRelevance: art.whyRelevance || '',
+      whyRelevance: art.whyRelevance || art.razon_relevancia || '',
     }));
 
     // 1. Filtrar por Palabras Betadas (Blacklist)
