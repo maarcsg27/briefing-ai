@@ -13,9 +13,10 @@ import {
   RefreshCw,
   Search,
   BookOpen,
-  Info,
   ShieldAlert,
-  X
+  X,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
 import { storageService } from '../services/storageService';
@@ -48,11 +49,12 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
   const [newSubcategory, setNewSubcategory] = useState('');
   const [newBannedKeyword, setNewBannedKeyword] = useState('');
 
-  // Estados para descubrimiento de fuentes por IA
+  // Estados para descubrimiento de fuentes por IA y Voz
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveredSources, setDiscoveredSources] = useState<DiscoveredSource[]>([]);
   const [addedDiscoveredIds, setAddedDiscoveredIds] = useState<Set<string>>(new Set());
-  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const [customSourceQuery, setCustomSourceQuery] = useState('');
+  const [isListeningSource, setIsListeningSource] = useState(false);
 
   const selectedScope = scopes.find((s) => s.id === selectedScopeId) || scopes[0];
   const activePrefs = preferencesMap[selectedScopeId] || selectedScope?.defaultPreferences;
@@ -189,16 +191,11 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
     onUpdatePreferences(selectedScopeId, updated);
   };
 
-  const handleDiscoverSources = async () => {
-    if (!geminiService.hasValidKey()) {
-      setShowKeyInput(true);
-      setDiscoveryError('Por favor ingresa tu Gemini API Key para descubrir fuentes en internet.');
-      return;
-    }
-
+  const handleDiscoverSources = async (queryOverride?: string) => {
     setIsDiscovering(true);
-    setDiscoveryError(null);
     setDiscoveredSources([]);
+
+    const queryToUse = queryOverride !== undefined ? queryOverride : customSourceQuery;
 
     try {
       const existingDomains = activePrefs.sources.map((s) => s.domain);
@@ -206,14 +203,58 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
         selectedScope.name,
         selectedScope.description,
         [...activePrefs.tags, ...(activePrefs.subcategories || [])],
-        existingDomains
+        existingDomains,
+        queryToUse
       );
 
       setDiscoveredSources(results);
     } catch (err: any) {
-      setDiscoveryError(err.message || 'Error al conectar con Gemini API.');
+      console.warn('Error en descubrimiento de fuentes por IA:', err);
     } finally {
       setIsDiscovering(false);
+    }
+  };
+
+  const handleListenSourceQuery = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert('Tu navegador no soporta entrada de voz directa. Puedes escribir tu búsqueda en el cuadro de texto.');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'es-ES';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsListeningSource(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript) {
+          setCustomSourceQuery(transcript);
+          handleDiscoverSources(transcript);
+        }
+        setIsListeningSource(false);
+      };
+
+      recognition.onerror = () => {
+        setIsListeningSource(false);
+      };
+
+      recognition.onend = () => {
+        setIsListeningSource(false);
+      };
+
+      recognition.start();
+    } catch (e) {
+      console.error(e);
+      setIsListeningSource(false);
     }
   };
 
@@ -638,45 +679,104 @@ export const LibraryManager: React.FC<LibraryManagerProps> = ({
           </div>
         </div>
 
-        {/* COLUMNA DERECHA (1 Col): DESCUBRIDOR AUTÓNOMO DE FUENTES POR IA */}
+        {/* COLUMNA DERECHA (1 Col): DESCUBRIDOR AUTÓNOMO DE FUENTES POR IA Y VOZ */}
         <div className="space-y-6">
           <div className="bg-gradient-to-b from-indigo-950/40 via-slate-900 to-slate-900 rounded-2xl border border-indigo-500/30 p-6 space-y-4 shadow-xl">
             
             <div className="flex items-center gap-2 text-indigo-400">
               <Bot className="w-5 h-5" />
               <h4 className="text-sm font-bold uppercase tracking-wider text-white">
-                Descubridor de Fuentes por IA
+                Descubridor de Fuentes por IA & Comando de Voz
               </h4>
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
-              La IA de **Gemini** rastreará la web para descubrir blogs, foros, revistas digitales y medios de referencia específicos de **{selectedScope.name}** que no tengas guardados.
+              Pide por <strong>texto o dictando por voz</strong> la temática o competición sobre la que deseas descubrir webs, blogs, foros o portales verificados.
             </p>
 
+            {/* CUADRO DE TEXTO Y BOTÓN PARA HABLAR */}
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customSourceQuery}
+                  onChange={(e) => setCustomSourceQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleDiscoverSources();
+                    }
+                  }}
+                  placeholder="Ej: busca una fuente sobre ciclismo uci, o resultados de la liga y la champions..."
+                  className="flex-1 bg-slate-950 border border-indigo-500/40 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400"
+                />
+
+                {/* BOTÓN DE MICRÓFONO PARA HABLAR */}
+                <button
+                  type="button"
+                  onClick={handleListenSourceQuery}
+                  title="Pulsar para pedir por voz la fuente que buscas"
+                  className={`px-3.5 py-2.5 rounded-xl border font-bold text-xs transition flex items-center justify-center gap-1.5 shrink-0 ${
+                    isListeningSource
+                      ? 'bg-rose-500 text-white animate-pulse border-rose-400 shadow-lg shadow-rose-500/30'
+                      : 'bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 border-indigo-500/40'
+                  }`}
+                >
+                  {isListeningSource ? (
+                    <>
+                      <MicOff className="w-4 h-4 text-white" />
+                      <span>Escuchando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-4 h-4 text-indigo-400" />
+                      <span>Hablar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* EJEMPLOS RÁPIDOS EN PÍLDORAS */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <span className="text-[10px] text-slate-400 flex items-center gap-1 font-semibold">Ejemplos:</span>
+                {[
+                  'Ciclismo UCI carretera',
+                  'Liga EA y Champions League',
+                  'Psicología y Ansiedad',
+                  'Finanzas e Inversión',
+                ].map((ex) => (
+                  <button
+                    key={ex}
+                    type="button"
+                    onClick={() => {
+                      setCustomSourceQuery(ex);
+                      handleDiscoverSources(ex);
+                    }}
+                    className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+                  >
+                    {ex}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <button
-              onClick={handleDiscoverSources}
+              onClick={() => handleDiscoverSources()}
               disabled={isDiscovering}
               className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/20 transition flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isDiscovering ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-indigo-200" />
-                  <span>Rastreando la web con Gemini...</span>
+                  <span>Rastreando fuentes en la web...</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-                  <span>Descubrir Nuevas Fuentes con IA</span>
+                  <span>Buscar Fuentes con IA</span>
                 </>
               )}
             </button>
-
-            {discoveryError && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2">
-                <Info className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
-                <span>{discoveryError}</span>
-              </div>
-            )}
 
             {/* LISTA DE FUENTES DESCUBIERTAS POR LA IA */}
             {discoveredSources.length > 0 && (

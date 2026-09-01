@@ -29,7 +29,7 @@ export interface DiscoveredSource {
   domain: string;
   description: string;
   category: string;
-  scopeId: string;
+  scopeId?: string;
   sourceType: 'blog' | 'foro' | 'prensa' | 'podcast' | 'oficial';
   url: string;
 }
