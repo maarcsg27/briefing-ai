@@ -201,6 +201,128 @@ ESTRUCTURA EXACTA DEL JSON REQUERIDA:
   },
 
   /**
+   * Procesa un lote de noticias extraídas mediante web scraping / RSS,
+   * filtra estrictamente aquellas que coincidan con las etiquetas del usuario
+   * y genera un resumen estructurado en JSON de 1 párrafo objetivo (4-5 oraciones) sin frases introductorias.
+   */
+  async curateExtractedNewsWithAI(
+    scopeName: string,
+    tags: string[],
+    bannedKeywords: string[],
+    maxLimit: number,
+    extractedNews: Array<{ titular: string; enlace: string; fuente: string; texto_completo: string }>,
+    onProgress?: (msg: string) => void
+  ): Promise<NewsItem[]> {
+    const apiKey = this.getApiKey();
+    if (!apiKey || extractedNews.length === 0) {
+      return [];
+    }
+
+    if (onProgress) onProgress(`Analizando y filtrando lote de ${extractedNews.length} noticias con Gemini (temp: 0.2)...`);
+
+    const batchSize = 10;
+    const allFilteredArticles: NewsItem[] = [];
+
+    for (let i = 0; i < extractedNews.length && allFilteredArticles.length < maxLimit; i += batchSize) {
+      const currentBatch = extractedNews.slice(i, i + batchSize);
+
+      const promptText = `
+Actúa como el motor de curación de contenidos y análisis de texto para un agregador de noticias hiper-personalizado. Tu objetivo es procesar un lote de noticias extraídas de diversas fuentes, filtrar estrictamente aquellas que coincidan con los intereses del usuario y generar un resumen estructurado.
+
+A continuación, recibirás dos bloques de información:
+1. [PREFERENCIAS_DEL_USUARIO]: Las categorías y etiquetas (tags) específicas que le interesan al usuario.
+2. [NOTICIAS_EXTRAIDAS]: Una lista de artículos obtenidos mediante web scraping, que incluye el Titular, el Enlace y el Texto Completo de cada noticia.
+
+TUS INSTRUCCIONES:
+1. FILTRADO: Analiza el texto completo de cada noticia en [NOTICIAS_EXTRAIDAS]. Compara el contenido con las etiquetas en [PREFERENCIAS_DEL_USUARIO]. Descarta cualquier noticia que no tenga una relación directa, clara y sustancial con al menos una de las etiquetas del usuario. Descarta también cualquier noticia que contenga palabras vetadas.
+2. RESUMEN: Para las noticias que pasen el filtro, lee el contenido completo y redacta un resumen de exactamente un párrafo (máximo 4-5 oraciones). El resumen debe ser objetivo, directo al grano y contener la información de mayor valor de la noticia. No uses frases introductorias como "Este artículo trata sobre..." o "En esta noticia...".
+3. FORMATO DE SALIDA: Debes devolver la información EXCLUSIVAMENTE en formato JSON válido, sin texto adicional en formato Markdown.
+
+La estructura del JSON debe ser exactamente esta:
+{
+  "noticias_filtradas": [
+    {
+      "titular": "Titular original de la noticia",
+      "enlace": "URL original proporcionada",
+      "fuente": "Nombre del medio o fuente",
+      "etiquetas_coincidentes": ["etiqueta1", "etiqueta2"],
+      "resumen": "Tu resumen de un solo párrafo de 4 a 5 oraciones desglosando los hechos clave y consecuencias."
+    }
+  ]
+}
+
+-----------------
+[PREFERENCIAS_DEL_USUARIO]
+{
+  "categoria": "${scopeName}",
+  "etiquetas_prioritarias": ${JSON.stringify(tags)},
+  "palabras_vetadas": ${JSON.stringify(bannedKeywords)}
+}
+
+[NOTICIAS_EXTRAIDAS]
+${JSON.stringify(currentBatch, null, 2)}
+`;
+
+      const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-exp'];
+
+      for (const model of modelsToTry) {
+        try {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: promptText }] }],
+              generationConfig: {
+                temperature: 0.2,
+                responseMimeType: 'application/json',
+              },
+            }),
+            signal: AbortSignal.timeout(12000),
+          });
+
+          if (response.ok) {
+            const resData = await response.json();
+            const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const cleanJson = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const parsed = JSON.parse(cleanJson);
+
+            const filteredBatch = Array.isArray(parsed.noticias_filtradas) ? parsed.noticias_filtradas : [];
+            filteredBatch.forEach((art: any, idx: number) => {
+              let domain = 'fuente.com';
+              try {
+                if (art.enlace) domain = new URL(art.enlace).hostname.replace(/^www\./, '');
+              } catch {}
+
+              allFilteredArticles.push({
+                id: `curated-${Date.now()}-${allFilteredArticles.length}-${idx}`,
+                title: art.titular || 'Noticia destacada',
+                summary: art.resumen || '',
+                contentSnippet: art.resumen || '',
+                source: art.fuente || domain,
+                sourceDomain: domain,
+                sourceUrl: art.enlace || '#',
+                publishedAt: 'Últimas 24h',
+                isOfficial: true,
+                matchedTags: Array.isArray(art.etiquetas_coincidentes) ? art.etiquetas_coincidentes : tags.slice(0, 1),
+                geographicArea: 'Global',
+                is24h: true,
+                whyRelevance: `Coincide con las etiquetas: ${(art.etiquetas_coincidentes || tags).join(', ')}`,
+              });
+            });
+
+            break;
+          }
+        } catch (e) {
+          console.warn(`Error curando lote con ${model}:`, e);
+        }
+      }
+    }
+
+    return allFilteredArticles;
+  },
+
+  /**
    * Rastrea y descubre autónomamente nuevas fuentes de referencia (blogs, foros, portales) para la biblioteca.
    * Soporta peticiones personalizadas del usuario por texto o comandos de voz.
    */

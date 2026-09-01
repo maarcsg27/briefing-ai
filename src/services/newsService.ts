@@ -595,6 +595,46 @@ export const newsService = {
 
     // 3. PUNTUAR Y FILTRAR ESTRICTAMENTE según etiquetas configuradas por el usuario
     const userTags = (preferences.tags || []).map((t) => t.trim());
+    const maxLimit = preferences.maxNewsLimit && preferences.maxNewsLimit > 0 ? preferences.maxNewsLimit : 5;
+
+    // --- CURACIÓN INTELIGENTE CON GEMINI (SI API KEY ESTÁ CONFIGURADA) ---
+    const extractedForAI = uniqueArticles.map((a) => ({
+      titular: a.title,
+      enlace: a.sourceUrl,
+      fuente: a.source,
+      texto_completo: `${a.title}. ${a.summary || a.contentSnippet || ''}`,
+    }));
+
+    if (geminiService.hasValidKey() && extractedForAI.length > 0) {
+      try {
+        const curatedByAI = await geminiService.curateExtractedNewsWithAI(
+          scopeName,
+          userTags,
+          banned,
+          maxLimit,
+          extractedForAI,
+          onProgress
+        );
+
+        if (curatedByAI.length > 0) {
+          return {
+            id: `briefing-curated-${Date.now()}`,
+            scopeId,
+            scopeName,
+            timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+            audioScript: `Resumen de prensa y actualidad en ${scopeName}.`,
+            summaryBulletPoints: curatedByAI.map((a) => a.summary),
+            articles: curatedByAI,
+            matchedTagsCount: curatedByAI.length,
+            totalArticlesAnalyzed: uniqueArticles.length,
+            isExhaustive24h: true,
+            lastSearchDate: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+          };
+        }
+      } catch (e) {
+        console.warn('Error en curación por IA de noticias extraídas:', e);
+      }
+    }
 
     let scoredArticles = uniqueArticles.map((art) => {
       const fullText = `${art.title} ${art.summary} ${art.contentSnippet}`.toLowerCase();
@@ -630,7 +670,6 @@ export const newsService = {
     scoredArticles.sort((a, b) => (b.score || 0) - (a.score || 0));
 
     // 4. APLICAR EL LÍMITE DE NOTICIAS DE LA CATEGORÍA
-    const maxLimit = preferences.maxNewsLimit && preferences.maxNewsLimit > 0 ? preferences.maxNewsLimit : 5;
     const selectedBatch = scoredArticles.slice(0, maxLimit);
 
     // SINTETIZAR Y GARANTIZAR RESÚMENES LIMPIOS Y PUNTOS CLAVE SIN REPETIR EL TITULAR
